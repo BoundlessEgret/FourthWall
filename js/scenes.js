@@ -160,6 +160,9 @@
       if (s.idle === 60 * 40) s.greet = { expr: 'surprised', text: '……你還在嗎？畫面一直停在這裡耶。', t: 0 };
       if (s.idle === 60 * 90) s.greet = { expr: 'smile', text: '沒關係，我們等你。慢慢來。', t: 0 };
       if (s.greet) s.greet.t++;
+      // 更新前就通關過的存檔：補上「存檔資料夾裡多了一個檔案」的劇情
+      if (s.t === 150 && Save.anyClear() && !Save.data.unlockedChars.sou && !s.souAsked) { s.souAsked = true; s.greet = { expr: 'surprised', text: '……咦？你的存檔資料夾裡，好像多了一個沒看過的檔案。', t: 0 }; s.souGo = 180; }
+      if (s.souGo > 0 && --s.souGo === 0) FW.openSouUnlock();
     };
     s.draw = (ctx) => {
       const t = s.t;
