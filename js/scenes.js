@@ -120,6 +120,7 @@
         { label: '音樂室', act: () => SM.go(MusicRoom()) },
         { label: Save.data.fwTheater ? '幕間劇場「F W」' : '幕間劇場「？？」', act: () => FW.openTheater() },
         { label: '紀錄與成就', act: () => SM.go(Records()) },
+        { label: '預告片 ▶', act: () => { Save.write(); location.href = 'trailer.html'; } },
         { label: '設定', act: () => SM.go(Options()) },
         { label: '離開', act: () => SM.go(Quit()) },
       ];
@@ -138,6 +139,7 @@
       s.greet = { expr: g[0], text: g[1], t: 0 };
       Save.isReturn = false;
       Save.unlock('boot'); Meta.check();
+      setTimeout(() => FW.Outside.batteryGreeting(), 1500);
     };
     s.update = () => {
       s.t++; s.idle++;
@@ -183,8 +185,8 @@
       ctx.shadowBlur = 0; ctx.font = `italic 20px ${SERIF}`; ctx.fillStyle = '#ffc8d8'; ctx.fillText(Save.data.fwTheater && Math.floor(t / 600) % 3 === 2 ? 'FW ～ Forever Waiting' : 'FourthWall ～ Behind the Bullet Curtain', 360, 164);
       ctx.restore();
       // 選單
-      panel(ctx, 708, 190, 236, 430, '#ff9ad6', 0.65);
-      menuList(ctx, items(), s.sel, 738, 230, 39, 20, 'left', t);
+      panel(ctx, 708, 186, 236, 450, '#ff9ad6', 0.65);
+      menuList(ctx, items(), s.sel, 738, 224, 37, 19, 'left', t);
       // 招呼
       if (s.greet) {
         panel(ctx, 40, 640, 640, 60, '#5a8cff', 0.85);
@@ -485,11 +487,12 @@
       { label: `畫面震動　${st().shake ? '開' : '關'}`, act: () => st().shake = !st().shake, lr: () => st().shake = !st().shake },
       { label: `視窗標題特效　${st().fourthWallTitle ? '開' : '關'}`, act: () => st().fourthWallTitle = !st().fourthWallTitle, lr: () => st().fourthWallTitle = !st().fourthWallTitle },
       { label: `自動符卡（輔助）　${st().autoBomb ? '開' : '關'}`, act: () => st().autoBomb = !st().autoBomb, lr: () => st().autoBomb = !st().autoBomb },
+      { label: `手機震動　${st().vibrate !== false ? '開' : '關'}`, act: () => { st().vibrate = st().vibrate === false; if (st().vibrate) FW.Outside.vibrate([40, 60, 40]); }, lr: () => st().vibrate = st().vibrate === false },
       { label: '全螢幕切換', act: () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); } },
       { label: s.wipe === 0 ? '刪除存檔' : s.wipe === 1 ? '刪除存檔（真的？）' : '刪除存檔（真的真的？）', act: () => wipe() },
       { label: '返回', act: () => { Save.write(); SM.go(TitleScene()); } },
     ];
-    const DESC = ['', '', '受傷或炸彈時畫面會震動。', '允許角色們修改瀏覽器分頁的標題。', '被擊中時，如果還有符卡就會自動施放。（無法收取符卡）', '', '所有紀錄都會消失。她們也會忘記你。', ''];
+    const DESC = ['', '', '受傷或炸彈時畫面會震動。', '允許角色們修改瀏覽器分頁的標題。', '被擊中時，如果還有符卡就會自動施放。（無法收取符卡）', '鈴敲螢幕的時候，手機會跟著震動。（僅支援 Android）', '', '所有紀錄都會消失。她們也會忘記你。', ''];
     function wipe() {
       s.wipe++;
       if (s.wipe === 1) s.react = ['rinne', 'surprised', '欸……你要刪掉存檔？'];
@@ -500,7 +503,7 @@
       s.t++;
       const it = items();
       s.sel = menuNav(s.sel, it.length);
-      if (s.sel !== 6) s.wipe = 0;
+      if (s.sel !== 7) s.wipe = 0;
       if (Input.repeat('left') && it[s.sel].lr) { it[s.sel].lr(-1); A().sfx('cursor'); }
       if (Input.repeat('right') && it[s.sel].lr) { it[s.sel].lr(1); A().sfx('cursor'); }
       if (Input.hit('confirm') && it[s.sel].act) { A().sfx('select'); it[s.sel].act(); }
@@ -509,8 +512,8 @@
     s.draw = (ctx) => {
       bgGrad(ctx, s.t);
       title(ctx, '設定', 80, 90, 40);
-      panel(ctx, 60, 120, 560, 470);
-      menuList(ctx, items(), s.sel, 100, 175, 52, 20, 'left', s.t);
+      panel(ctx, 60, 120, 560, 480);
+      menuList(ctx, items(), s.sel, 100, 170, 47, 20, 'left', s.t);
       text(ctx, DESC[s.sel] || '', 80, 630, 15, '#c8c0e0');
       text(ctx, FW.touchMode ? '觸控：在畫面任意處拖曳移動（自動射擊）　按鈕：符卡／低速／暫停／快轉' : '操作：方向鍵／WASD 移動　Z 射擊　X 符卡　Shift 低速　Esc 暫停　Ctrl 快轉對話（也支援手把）', 80, 680, 13, '#9a90b8');
       if (s.react) { const [id, ex, tx] = s.react; Art.portrait(ctx, FW.CHARS[id].spec, 790, 330, 1.1, { t: s.t, expr: ex }); panel(ctx, 650, 520, 280, 70, FW.CHARS[id].color); ctx.font = `15px ${F()}`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; wrapText(ctx, tx, 666, 550, 250, 20); }

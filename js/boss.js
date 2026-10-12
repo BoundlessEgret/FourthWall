@@ -74,6 +74,7 @@
         g.cutin = { t: 0, char: this.charId, side: 'R', expr: ph.expr || 'serious' };
         g.banner = { t: 0, name: ph.name, id: this.spellId };
         g.sfx('spell');
+        FW.Outside.theme(U.shade(this.ch.color, -0.7));
         if (ph.onDeclare) ph.onDeclare(this, g);
       } else g.banner = null;
       const self = this;
@@ -89,6 +90,7 @@
       this.tasks.clear();
       g.clearBullets(true);
       g.lasers.length = 0;
+      FW.Outside.theme();
       if (ph.onEnd) ph.onEnd(this, g);
       if (ph.spell) {
         const ok = this.captured && (how === 'kill' || ph.survival);

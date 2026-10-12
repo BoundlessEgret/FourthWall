@@ -129,13 +129,13 @@
     constructor(g) { super(g, 240); this.pct = 0; this.cracks = []; this.shards = null; this.snap = null; this.hit = { x: FW.VW * 0.62, y: FW.VH * 0.45 }; }
     step(t) {
       const g = this.g;
-      if (t === 1) { FW.Title.set('第四面牆 FourthWall (沒有回應)', 6000); FW.Audio.stutter(0.6); }
+      if (t === 1) { FW.Title.set('第四面牆 FourthWall (沒有回應)', 6000); FW.Audio.stutter(0.6); FW.Outside.say('akane', FW.touchMode ? '欸嘿，整個遊戲「沒有回應」了！……連你的瀏覽器網址列都變藍了喔，看上面！' : '欸嘿，整個遊戲「沒有回應」了！……看一下你的分頁標題？', { expr: 'smug', key: 'akbomb', cool: 90000 }); }
       if (t < 40) { g.freezeWorld = 2; g.freezePlayer = true; }
-      if (t === 40) { g.freezePlayer = false; g.sfx('error'); g.clearBullets(true); FW.Title.set(':( 第四面牆 FourthWall'); }
+      if (t === 40) { g.freezePlayer = false; g.sfx('error'); g.clearBullets(true); FW.Title.set(':( 第四面牆 FourthWall'); FW.Outside.theme('#1366c6'); }
       if (t >= 40 && t < 150) { this.pct = Math.min(100, this.pct + 1.1); dmgAll(g, 2.4); g.clearBullets(false); }
       if (t >= 110 && t < 150 && t % 8 === 0) { g.sfx('crack'); g.shake(3); const a = U.rnd(TAU), r = U.rnd(40, 200); this.cracks.push({ a, len: r + (t - 110) * 6 }); }
       if (this.shards) for (const s of this.shards) { s.x += s.vx; s.y += s.vy; s.vy += 0.5; s.rot += s.vr; }
-      if (t === 150) { g.sfx('glass'); g.shake(14); FW.Title.reset(); dmgAll(g, 60); g.doFlash(0.3, '#ffffff'); }
+      if (t === 150) { g.sfx('glass'); g.shake(14); FW.Title.reset(); FW.Outside.theme(); FW.Outside.vibrate([180]); dmgAll(g, 60); g.doFlash(0.3, '#ffffff'); }
     }
     drawScreen(ctx) {
       const t = this.t;
@@ -145,7 +145,10 @@
         ctx.save(); ctx.translate(FW.VW / 2, FW.VH / 2); ctx.rotate(t * 0.2); ctx.strokeStyle = '#3a7cff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 1.4); ctx.stroke(); ctx.restore();
         return;
       }
-      if (t <= 150) this.drawBSOD(ctx);
+      if (t <= 150) {
+        if (FW.portraitView) { const V = FW.view, k = V.w / FW.VW; ctx.fillStyle = '#1366c6'; ctx.fillRect(V.x, V.y, V.w, V.h); ctx.save(); ctx.translate(V.x, V.y + V.h * 0.12); ctx.scale(k, k); this.drawBSOD(ctx); ctx.restore(); }
+        else this.drawBSOD(ctx);
+      }
     }
     drawBSOD(ctx) {
       const t = Math.min(this.t, 150);
@@ -190,6 +193,8 @@
       }
       if (this.shards && t > 150) {
         const k = t - 150;
+        ctx.save();
+        if (FW.portraitView) { const V = FW.view, sc = V.w / FW.VW; ctx.translate(V.x, V.y + V.h * 0.12); ctx.scale(sc, sc); }
         for (const s of this.shards) {
           ctx.save(); ctx.translate(s.mx + s.x, s.my + s.y); ctx.rotate(s.rot); ctx.translate(-s.mx, -s.my);
           ctx.beginPath(); s.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
@@ -197,9 +202,10 @@
           ctx.strokeStyle = `rgba(255,255,255,${Math.max(0, 0.8 - k / 80)})`; ctx.lineWidth = 1.5; ctx.stroke();
           ctx.restore();
         }
+        ctx.restore();
       }
     }
-    end() { this.g.freezePlayer = false; FW.Title.reset(); }
+    end() { this.g.freezePlayer = false; FW.Title.reset(); FW.Outside.theme(); }
   };
 
   // ==================== 汐：借我一下你的滑鼠 ====================
@@ -210,6 +216,7 @@
       this.start = m.inside ? { x: m.x, y: m.y } : { x: FW.VW - 40, y: FW.VH - 40 };
       this.cx = this.start.x; this.cy = this.start.y; this.sel = null; this.menu = null; this.count = 0;
       FW.canvas.style.cursor = 'none';
+      if (!m.inside && FW.touchMode) FW.Outside.say('shio', '你沒有滑鼠呢……那就借一下你的手指吧♪', { expr: 'smile', key: 'shiofinger', cool: 90000 });
     }
     step(t) {
       const g = this.g, x0 = PF.x + 8, y0 = PF.y + 8, x1 = PF.x + W - 8, y1 = PF.y + H - 8;
@@ -321,7 +328,8 @@
       }
       if (t === 150 || t === 170 || t === 190) {
         const x = U.rnd(120, W - 120), y = U.rnd(100, H - 200);
-        this.knocks.push({ x, y, t: 0 }); g.sfx('knock'); g.shake(8);
+        this.knocks.push({ x, y, t: 0 }); g.sfx('knock'); g.shake(8); FW.Outside.vibrate([40, 60, 40]);
+        if (t === 150) FW.Outside.say('suzu', FW.Outside.canVibrate() ? '叩叩！你的手有感覺到嗎？是我喔！' : '叩叩！聽得到嗎？我在螢幕外面喔！', { expr: 'happy', key: 'knock', cool: 90000 });
         g.clearBullets(true, b => U.dist(b.x, b.y, x, y) < 200);
         dmgAll(g, 30, e => U.dist(e.x, e.y, x, y) < 220);
       }

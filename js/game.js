@@ -271,7 +271,7 @@
     }
     killPlayer() {
       const p = this.player;
-      this.deaths++; Save.data.deaths++;
+      this.deaths++; Save.data.deaths++; FW.Outside.vibrate(70);
       if (this.boss && this.boss.phase && this.boss.phase.spell) this.boss.captured = false;
       this.spark(p.x, p.y, '#ffffff', 40, 7); this.ringFx(p.x, p.y, this.ch.color, 140, 40);
       this.shake(8); this.doFlash(0.5, '#ffffff');
@@ -294,7 +294,7 @@
       this.bombFx = new B(this);
       this.player.invuln = Math.max(this.player.invuln, this.bombFx.dur + 60);
       this.collectAll = 60;
-      this.sfx('bomb');
+      this.sfx('bomb'); FW.Outside.vibrate(25);
       if (deathbomb) this.text(this.player.x, this.player.y - 30, '決死！', '#ffd36b', 18);
     }
     addScore(n) {

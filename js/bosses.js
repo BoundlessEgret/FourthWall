@@ -264,7 +264,7 @@
         if (f % 20 === 0) g.fan(b.x, b.y, g.aim(b.x, b.y), g.n(5), 0.6, 3, 'orb', 'green');
         k++; yield 2;
       }
-      lag = 22; g.freezeWorld = 22; g.sfx('error'); FW.Audio.stutter(0.36); FW.Title.set('第四面牆 FourthWall (沒有回應)', 900);
+      lag = 22; g.freezeWorld = 22; g.sfx('error'); FW.Outside.say('akane', '（沒有回應）……騙你的啦，遊戲還活著！', { expr: 'smug', key: 'hang', cool: 60000 }); FW.Audio.stutter(0.36); FW.Title.set('第四面牆 FourthWall (沒有回應)', 900);
       yield 1;
       while (lag > 0) { lag--; yield 1; }
       yield* b.wander(30);
@@ -480,7 +480,7 @@
       for (let n = 0; n < 3; n++) {
         let x, y, tries = 0;
         do { x = U.rnd(50, W - 50); y = U.rnd(60, H - 120); tries++; } while (U.dist(x, y, g.player.x, g.player.y) < 170 && tries < 30);
-        g.sfx('knock'); g.shake(5);
+        g.sfx('knock'); g.shake(5); FW.Outside.vibrate([30, 50, 30]);
         cracks.push({ x, y, life: 200, rays: Array.from({ length: 7 }, () => U.rnd(TAU)) });
         g.text(x, y - 20, '叩', '#fff', 20, 30);
         g.ring(x, y, g.n(12 + lv), 1.9, 'shard', 'cyan', U.rnd(TAU), { acc: 0.01, maxSpeed: 2.8 });
@@ -583,7 +583,7 @@
       k++; yield Math.max(8, 16 - lv);
     }
   }, onEnd: (b, g) => killOverlays(b)() };
-  P.maku_last = { spell: true, id: 'dontclose', name: '幕引「請不要關掉遊戲」', survival: true, time: 40, expr: 'sad', *gen(b, g, lv) {
+  P.maku_last = { spell: true, id: 'dontclose', name: '幕引「請不要關掉遊戲」', survival: true, time: 40, expr: 'sad', onDeclare: () => FW.Outside.say('maku', '……你那邊，現在是 {time} 吧。這一段結束之後，就去休息喔。', { expr: 'sad', key: 'makulast', cool: 600000 }), *gen(b, g, lv) {
     const roll = ['第四面牆', '', '—— 主演 ——', '玲音　千代　茜', '汐　棗　鈴', '', '—— 舞台 ——', '幕', '', '—— 遊玩 ——', '你', '', '謝謝你', '一路陪我們到這裡', '', '所以……', '你可以去睡了', '', 'THE END'];
     let scroll = 0;
     ov(b, g, { under: true, tick() { scroll += 0.9; g.bgDim = Math.min(0.75, scroll / 900); }, render(ctx) {

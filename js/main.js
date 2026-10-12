@@ -47,7 +47,7 @@
   const toasts = [];
   FW.toast = (text, col = '#fff') => { toasts.push({ text, col, t: 0 }); FW.Audio && FW.Audio.sfx('extend'); };
   function drawToasts() {
-    let y = 40;
+    let y = FW.portraitView ? 110 : 40;
     for (const t of toasts) {
       t.t++;
       const a = Math.min(1, t.t / 15) * Math.min(1, (240 - t.t) / 20);
@@ -74,6 +74,7 @@
     } else {
       FW.Title.reset();
       if (Date.now() - hiddenAt > 1500 && FW.SM.cur && FW.SM.cur.g) FW.tabReturn = true;
+      if (Date.now() - hiddenAt > 1500) { const sc = FW.SM.cur; FW.Outside.say(sc && sc.g ? sc.g.charId : 'rinne', Date.now() - hiddenAt > 600000 ? '……你去了好久喔。不過沒關係，歡迎回來。' : '……你剛剛去哪了？我們一直在等你喔。', { expr: 'surprised', key: 'tab', cool: 30000 }); }
     }
   });
 

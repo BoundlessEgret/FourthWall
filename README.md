@@ -2,6 +2,12 @@
 
 東方 Project 風格的 2D 彈幕射擊遊戲。全員原創角色，所有圖像都是向量即時繪製（非像素畫），所有音樂與音效都由 WebAudio 即時合成，沒有任何外部素材。
 
+## 預告片
+
+- 網頁版（會讀你的存檔、知道現在幾點）：[trailer.html](https://howeraprojects.github.io/FourthWall/trailer.html)
+- 影片版：[trailer.mp4](https://howeraprojects.github.io/FourthWall/trailer.mp4)（1080p／75 秒）
+- 重新輸出影片：`python3 tools/trailer_server.py out 8766`，開 `http://localhost:8766/trailer.html?render&fps=30`，完成後 `sh tools/make_trailer.sh out trailer.mp4`
+
 ## 怎麼玩
 
 直接用瀏覽器開啟 `index.html` 即可（Chrome / Edge / Firefox 建議）。不需要安裝、不需要伺服器。
@@ -79,5 +85,7 @@ js/bombs.js       六種第四面牆符卡
 js/scenes.js      標題、選單、結局、名單等畫面
 js/touch.js       手機觸控操作
 js/galgame.js     視覺小說引擎＋幕間劇場
+js/outside.js     螢幕外的第四面牆（手機震動、網址列顏色、電量、轉手機）
+js/trailer.js     預告片
 js/main.js        主迴圈
 ```

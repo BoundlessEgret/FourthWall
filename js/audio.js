@@ -134,7 +134,13 @@
     unlock() {
       if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
       try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-      const c = this.ctx;
+      this.build(this.ctx);
+      this.applyVolume();
+      this.ready = true;
+      this.timer = setInterval(() => this.tick(), 25);
+      if (this.pending) { const p = this.pending; this.pending = null; this.play(p); }
+    },
+    build(c) {
       this.master = c.createGain(); this.master.gain.value = 0.9;
       const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
       this.master.connect(comp); comp.connect(c.destination);
@@ -149,10 +155,25 @@
       this.rev.connect(this.revGain); this.revGain.connect(this.duck);
       const nl = c.sampleRate; this.noise = c.createBuffer(1, nl, c.sampleRate);
       const nd = this.noise.getChannelData(0); for (let i = 0; i < nl; i++) nd[i] = Math.random() * 2 - 1;
-      this.applyVolume();
-      this.ready = true;
-      this.timer = setInterval(() => this.tick(), 25);
-      if (this.pending) { const p = this.pending; this.pending = null; this.play(p); }
+    },
+    // 離線渲染（預告片用）：cues = [{t, music:id, step, until}, {t, sfx:name}, {t, gain:v, ramp}]
+    async renderOffline(cues, dur, sr = 44100) {
+      const keep = ['ctx', 'master', 'bgm', 'se', 'duck', 'rev', 'revGain', 'noise'].map(k => [k, this[k]]);
+      const c = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
+      this.ctx = c; this.build(c); this._offline = true;
+      this.bgm.gain.value = 0.42; this.se.gain.value = 0.55;
+      let lastG = 1;
+      for (const q of cues) {
+        if (q.music) {
+          const song = SONGS[q.music], sd = 60 / song.bpm / 4;
+          let st = q.step || 0;
+          for (let tt = q.t; tt < Math.min(q.until, dur) - 0.001; tt += sd, st++) this.scheduleStep(song, st % song.steps, tt, sd);
+        } else if (q.sfx) this.sfx(q.sfx, { at: q.t });
+        else if (q.gain !== undefined) { this.duck.gain.setValueAtTime(lastG, q.t); this.duck.gain.linearRampToValueAtTime(q.gain, q.t + (q.ramp || 0.01)); lastG = q.gain; }
+      }
+      this._offline = false;
+      keep.forEach(([k, v]) => this[k] = v);
+      return c.startRendering();
     },
     applyVolume() {
       if (!this.ctx) return;
@@ -302,10 +323,10 @@
 
     // ---------------- 音效 ----------------
     sfx(name, opt = {}) {
-      if (!this.ready) return;
-      const c = this.ctx, t = c.currentTime;
+      if (!this.ready && !this._offline) return;
+      const c = this.ctx, t = opt.at !== undefined ? opt.at : c.currentTime;
       const lim = { shoot: 0.07, hit: 0.06, graze: 0.04, item: 0.03, eshot: 0.07, text: 0.03, cancel: 0.1 }[name];
-      if (lim) { if (t - (this.lastSE[name] || 0) < lim) return; this.lastSE[name] = t; }
+      if (lim && opt.at === undefined) { if (t - (this.lastSE[name] || 0) < lim) return; this.lastSE[name] = t; }
       const out = this.se;
       const tone = (type, f0, f1, dur, vol, when = 0, dest = out) => {
         const o = c.createOscillator(), g = c.createGain(); o.type = type;
@@ -351,6 +372,11 @@
         case 'boom': noise(1.0, 0.4, 'lowpass', 1200, 60); tone('sine', 70, 30, 0.8, 0.4); break;
         case 'type': tone('square', 1100 + Math.random() * 300, 0, 0.02, 0.05); noise(0.02, 0.08, 'highpass', 5000); break;
         case 'stretch': tone('sawtooth', 120, 60, 0.6, 0.08); break;
+        case 'impact': noise(1.4, 0.55, 'lowpass', 6000, 60); tone('sine', 90, 28, 1.2, 0.6); tone('sawtooth', 180, 40, 0.5, 0.12); break;
+        case 'riser': noise(2.0, 0.22, 'bandpass', 300, 9000); tone('sawtooth', 110, 880, 2.0, 0.05); break;
+        case 'rewind': for (let i = 0; i < 8; i++) tone('sawtooth', 1400 - i * 120, 300, 0.12, 0.05, i * 0.11); noise(1.0, 0.15, 'bandpass', 3000, 800); break;
+        case 'tapestop': tone('sawtooth', 440, 30, 0.6, 0.12); tone('square', 220, 20, 0.6, 0.06); break;
+        case 'hit2': noise(0.25, 0.4, 'lowpass', 5000, 200); tone('sine', 160, 50, 0.25, 0.5); break;
         case 'boing': tone('sine', 300, 900, 0.15, 0.2); tone('sine', 900, 200, 0.3, 0.15, 0.15); break;
       }
     },
