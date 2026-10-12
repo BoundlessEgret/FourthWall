@@ -160,6 +160,7 @@ const Save = FW.Save = {
       endlessBest: {},   // endlessBest[char] = {time, loops, score}
       achievements: {},
       seenChars: {},
+      unlockedChars: {},
       musicHeard: {},
       trueEnd: false,
       namePrompted: false,

@@ -114,6 +114,17 @@
       case 'needle': { const g = x.createLinearGradient(0, -18, 0, 18); g.addColorStop(0, '#fff'); g.addColorStop(1, U.rgba(col, 0)); x.fillStyle = g; x.fillRect(-2.5, -18, 5, 36); x.fillStyle = '#fff'; x.fillRect(-1, -18, 2, 26); break; }
       case 'star': { x.shadowColor = col; x.shadowBlur = 8; x.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 3.5 : 8, a = i * Math.PI / 5 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); x.fillStyle = col; x.fill(); x.shadowBlur = 0; x.fillStyle = '#fff'; x.beginPath(); x.arc(0, 0, 2.5, 0, TAU); x.fill(); break; }
       case 'ball': { const g = x.createRadialGradient(0, 0, 0, 0, 0, 9); g.addColorStop(0, '#fff'); g.addColorStop(0.5, col); g.addColorStop(1, U.rgba(col, 0)); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 9, 0, TAU); x.fill(); break; }
+      case 'sword': { // 飛劍（劍尖朝上）
+        x.globalAlpha = 1; x.shadowColor = col; x.shadowBlur = 8;
+        x.beginPath(); x.moveTo(0, -17); x.lineTo(3, -12); x.lineTo(3, 6); x.lineTo(-3, 6); x.lineTo(-3, -12); x.closePath();
+        const g = x.createLinearGradient(-3, 0, 3, 0); g.addColorStop(0, '#ffffff'); g.addColorStop(1, U.mix(col, '#ffffff', 0.5)); x.fillStyle = g; x.fill();
+        x.shadowBlur = 0; x.fillStyle = '#e8c860'; x.fillRect(-6, 6, 12, 3); x.fillStyle = '#1e2636'; x.fillRect(-1.5, 9, 3, 8);
+        x.fillStyle = col; x.beginPath(); x.arc(0, 18, 2, 0, TAU); x.fill(); break;
+      }
+      case 'qi': { // 劍氣（新月）
+        x.shadowColor = col; x.shadowBlur = 10; x.beginPath(); x.arc(0, 8, 14, Math.PI * 1.15, Math.PI * 1.85); x.arc(0, 13, 12, Math.PI * 1.8, Math.PI * 1.2, true); x.closePath();
+        x.fillStyle = U.mix(col, '#ffffff', 0.55); x.fill(); x.shadowBlur = 0; break;
+      }
       case 'page': { x.rotate(0.1); x.fillStyle = '#fffaf0'; x.fillRect(-7, -10, 14, 20); x.strokeStyle = col; x.lineWidth = 1.5; x.strokeRect(-7, -10, 14, 20); x.fillStyle = U.rgba(col, 0.6); for (let i = -6; i <= 6; i += 4) x.fillRect(-4, i, 8, 1.2); break; }
       case 'cursor': { x.beginPath(); x.moveTo(0, -9); x.lineTo(0, 6); x.lineTo(3.5, 2.5); x.lineTo(6, 8); x.lineTo(8, 7); x.lineTo(5.5, 1.5); x.lineTo(9.5, 1.5); x.closePath(); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = col; x.lineWidth = 1.4; x.stroke(); break; }
     }

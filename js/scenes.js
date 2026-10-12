@@ -80,6 +80,8 @@
     { id: 'boots10', name: '常客', desc: '打開遊戲 10 次。' },
     { id: 'wipe', name: '……你好？', desc: '刪除存檔後重新開始。' },
     { id: 'fw', name: 'Forever Waiting', desc: '看完幕間劇場「F W」。' },
+    { id: 'sou', name: '/unused/protagonist_00', desc: '找到被移出故事的男主角。' },
+    { id: 'southeater', name: '真・主角', desc: '看完幕間劇場「真・主角」。' },
   ];
 
   // ---------- Meta（第四面牆的小動作） ----------
@@ -118,7 +120,7 @@
         { label: '符卡練習', act: () => SM.go(Practice()) },
         { label: '角色圖鑑', act: () => SM.go(Gallery()) },
         { label: '音樂室', act: () => SM.go(MusicRoom()) },
-        { label: Save.data.fwTheater ? '幕間劇場「F W」' : '幕間劇場「？？」', act: () => FW.openTheater() },
+        { label: Save.data.unlockedChars.sou ? '幕間劇場' : Save.data.fwTheater ? '幕間劇場「F W」' : '幕間劇場「？？」', act: () => Save.data.unlockedChars.sou ? SM.go(FW.TheaterSelect()) : FW.openTheater() },
         { label: '紀錄與成就', act: () => SM.go(Records()) },
         { label: '預告片 ▶', act: () => { Save.write(); location.href = 'trailer.html'; } },
         { label: '設定', act: () => SM.go(Options()) },
@@ -169,6 +171,7 @@
       // 角色們
       const order = ['natsume', 'akane', 'chiyo', 'shio', 'suzu', 'rinne'];
       const pos = { natsume: [120, 470, 0.66], akane: [225, 450, 0.7], chiyo: [440, 470, 0.66], shio: [540, 455, 0.7], suzu: [640, 480, 0.64], rinne: [330, 430, 0.82] };
+      if (Save.data.unlockedChars.sou) Art.portrait(ctx, FW.CHARS.sou.spec, 48, 470 + Math.sin(t * 0.02) * 3, 0.6, { t, expr: 'normal', look: look(48, 470) });
       for (const id of order) {
         const [x, y, sc] = pos[id];
         const bob = Math.sin(t * 0.02 + x) * 4;
@@ -201,15 +204,16 @@
 
   // ---------- 角色選擇 ----------
   const CharSelect = FW.CharSelect = function (mode) {
-    const s = { t: 0, idx: FW.PLAYABLE.indexOf(Save.data.lastChar || 'rinne'), step: 0, diff: ['easy', 'normal', 'hard'].indexOf(Save.data.lastDiff || 'normal'), anim: 0 };
+    const R = FW.roster(), N = R.length;
+    const s = { t: 0, idx: R.indexOf(Save.data.lastChar || 'rinne'), step: 0, diff: ['easy', 'normal', 'hard'].indexOf(Save.data.lastDiff || 'normal'), anim: 0 };
     if (s.idx < 0) s.idx = 0; if (s.diff < 0) s.diff = 1;
     s.enter = () => A().play('select');
     s.update = () => {
       s.t++; s.anim = Math.min(1, s.anim + 0.08);
       if (s.step === 0) {
         if (FW._tapItem !== undefined) { const i = FW._tapItem; FW._tapItem = undefined; if (i === s.idx) Input.vhit.confirm = true; else { s.idx = i; s.anim = 0; A().sfx('cursor'); } }
-        if (Input.repeat('left')) { s.idx = (s.idx + 5) % 6; s.anim = 0; A().sfx('cursor'); }
-        if (Input.repeat('right')) { s.idx = (s.idx + 1) % 6; s.anim = 0; A().sfx('cursor'); }
+        if (Input.repeat('left')) { s.idx = (s.idx + N - 1) % N; s.anim = 0; A().sfx('cursor'); }
+        if (Input.repeat('right')) { s.idx = (s.idx + 1) % N; s.anim = 0; A().sfx('cursor'); }
         if (Input.hit('confirm')) { A().sfx('select'); if (mode === 'extra') start(); else s.step = 1; }
         if (Input.hit('cancel')) { A().sfx('back'); SM.go(TitleScene()); }
       } else {
@@ -219,12 +223,12 @@
       }
     };
     function start() {
-      const id = FW.PLAYABLE[s.idx], diff = mode === 'extra' ? 'normal' : ['easy', 'normal', 'hard'][s.diff];
+      const id = R[s.idx], diff = mode === 'extra' ? 'normal' : ['easy', 'normal', 'hard'][s.diff];
       Save.data.lastChar = id; Save.data.lastDiff = diff; Save.data.seenChars[id] = true; Save.write();
       SM.go(GameScene({ mode, char: id, diff }));
     }
     s.draw = (ctx) => {
-      const ch = FW.CHARS[FW.PLAYABLE[s.idx]], t = s.t;
+      const ch = FW.CHARS[R[s.idx]], t = s.t;
       bgGrad(ctx, t, U.shade(ch.color, -0.85), U.shade(ch.color, -0.6));
       ctx.save(); ctx.globalAlpha = 0.08; ctx.font = `bold 160px ${F()}`; ctx.fillStyle = '#fff'; ctx.fillText(ch.reading.toUpperCase(), -40 + (t * 0.5) % 200 - 100, 700); ctx.restore();
       const k = U.easeOut(s.anim);
@@ -241,15 +245,16 @@
       const c = Save.data.clears[ch.id];
       if (c && c.story) text(ctx, '通關：' + ['easy', 'normal', 'hard'].filter(d => c.story[d]).map(d => FW.DIFF[d].label).join('／'), 700, 520, 14, '#9af0b0');
       // 角色列
-      FW.PLAYABLE.forEach((id, i) => {
-        const x = 520 + i * 70, y = 640, on = i === s.idx;
+      const x0 = N > 6 ? 495 : 520, dx = N > 6 ? 66 : 70;
+      R.forEach((id, i) => {
+        const x = x0 + i * dx, y = 640, on = i === s.idx;
         ctx.save(); ctx.globalAlpha = on ? 1 : 0.5;
         ctx.beginPath(); ctx.arc(x, y - 20, on ? 34 : 28, 0, TAU); ctx.fillStyle = U.rgba(FW.CHARS[id].color, on ? 0.5 : 0.2); ctx.fill();
         Art.chibi(ctx, FW.CHARS[id].spec, x, y - 30, on ? 0.2 : 0.17, { t: t + i * 30, lean: 0 });
         ctx.restore();
       });
       text(ctx, FW.touchMode ? '點頭像選擇角色，再點一次決定' : '◀ ▶ 選擇角色', 520, 700, 13, '#b8b0d8');
-      if (s.step === 0) FW._menuRects = FW.PLAYABLE.map((id, i) => ({ x: 485 + i * 70, y: 590, w: 70, h: 90, i }));
+      if (s.step === 0) FW._menuRects = R.map((id, i) => ({ x: x0 - 35 + i * dx, y: 590, w: dx, h: 90, i }));
       if (s.step === 1) {
         ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, VW, VH);
         panel(ctx, 330, 220, 300, 250, '#fff', 0.92);
@@ -413,7 +418,8 @@
     const fake = { ch: FW.CHARS[charId], t: 0 };
     const pages = kind === 'good' ? FW.STORY.ENDINGS[charId] : kind === 'bad' ? FW.STORY.BAD(charId) : FW.STORY.TRUE(charId);
     const s = { i: 0, t: 0, shown: 0 };
-    const label = { good: `Ending No.${FW.PLAYABLE.indexOf(charId) + 1}　${FW.CHARS[charId].name}・Good Ending`, bad: `Ending No.${FW.PLAYABLE.indexOf(charId) + 7}　${FW.CHARS[charId].name}・Bad Ending`, true: 'True Ending　第四面牆的這一側' }[kind];
+    const no = i => FW.PLAYABLE.includes(charId) ? String(FW.PLAYABLE.indexOf(charId) + i) : 'EX';
+    const label = { good: `Ending No.${no(1)}　${FW.CHARS[charId].name}・Good Ending`, bad: `Ending No.${no(7)}　${FW.CHARS[charId].name}・Bad Ending`, true: 'True Ending　第四面牆的這一側' }[kind];
     s.enter = () => { A().play('ending'); };
     s.update = () => {
       s.t++;
@@ -444,6 +450,7 @@
     const lines = [
       ['big', '第四面牆'], ['sub', 'FourthWall ～ Behind the Bullet Curtain'], ['', ''], ['', ''],
       ['h', '主演'], ['', '玲音　千代　茜'], ['', '汐　棗　鈴'], ['', ''],
+      ...(Save.data.unlockedChars.sou ? [['h', '主演（第零版）'], ['', '蒼'], ['', '']] : []),
       ['h', '友情演出'], ['', '無名（untitled_character_07）'], ['', '幕'], ['', ''],
       ['h', '企劃・程式・美術・音樂・劇本'], ['', 'Claude'], ['', ''],
       ['h', '所有角色皆為原創角色'], ['', '所有圖像皆以向量即時繪製，所有音樂皆即時合成'], ['', ''],
@@ -458,11 +465,14 @@
     s.update = () => {
       s.t++; s.y -= Input.held('confirm') || Input.held('skip') ? 4 : 0.9;
       const end = s.y + lines.length * 46;
-      if (end < VH / 2 - 40 && (Input.hit('confirm') || s.t > 60 * 90)) SM.go(TitleScene());
+      if (end < VH / 2 - 40 && (Input.hit('confirm') || s.t > 60 * 90)) {
+        // 第一次通關後：存檔資料夾裡多了一個檔案……
+        if (!Save.data.unlockedChars.sou) FW.openSouUnlock(); else SM.go(TitleScene());
+      }
     };
     s.draw = (ctx) => {
       bgGrad(ctx, s.t, '#080512', '#20102a');
-      const order = FW.PLAYABLE;
+      const order = FW.roster();
       order.forEach((id, i) => { const x = i % 2 ? 840 : 120, y = ((i * 260 + s.t * 0.5) % 1560) - 200; Art.chibi(ctx, FW.CHARS[id].spec, x, VH - y, 0.4, { t: s.t + i * 40, lean: Math.sin(s.t * 0.02 + i) * 0.5, expr: 'happy' }); });
       ctx.textAlign = 'center';
       lines.forEach(([k, l], i) => {
@@ -557,10 +567,10 @@
 
   // ---------- 角色圖鑑 ----------
   const Gallery = FW.Gallery = function () {
-    const ids = [...FW.PLAYABLE, 'nanashi', 'maku'];
+    const ids = [...FW.PLAYABLE, 'sou', 'nanashi', 'maku'];
     const exprs = ['normal', 'smile', 'happy', 'surprised', 'smug', 'blush', 'angry', 'sad', 'cat', 'tired'];
     const s = { sel: 0, t: 0, ex: 0, pokes: 0, react: '' };
-    const unlocked = id => FW.PLAYABLE.includes(id) || Save.data.seenChars[id];
+    const unlocked = id => FW.PLAYABLE.includes(id) || (id === 'sou' ? Save.data.unlockedChars.sou : Save.data.seenChars[id]);
     s.update = () => {
       s.t++;
       const n = menuNav(s.sel, ids.length, { h: true }); if (n !== s.sel) { s.sel = n; s.ex = 0; s.pokes = 0; s.react = ''; }
@@ -569,7 +579,11 @@
         const R = ['……嗯？', '有什麼事嗎？', '你一直戳我耶。', '……再戳我就要生氣了喔。', '好啦好啦，我知道你在。', '（已讀不回）'];
         s.react = R[Math.min(R.length - 1, Math.floor(s.pokes / 3))];
         if (s.pokes >= 18) Save.unlock('poke');
+        // 彩蛋：戳無名 7 次（她是 07 號）
+        if (ids[s.sel] === 'nanashi' && s.pokes === 7 && !Save.data.unlockedChars.sou) { s.react = '……protagonist_00、在、隔壁的、資料夾。要、打開、嗎？'; s.nanaGo = 120; }
+        else if (ids[s.sel] === 'sou') s.react = ['……嗯？', '在下在。', '……別戳光環。', '……關不掉的。', '在下明白你的心情。', '（閉目養神中）'][Math.min(5, Math.floor(s.pokes / 3))];
       }
+      if (s.nanaGo > 0 && --s.nanaGo === 0) { FW.openSouUnlock(); return; }
       if (Input.hit('cancel')) { A().sfx('back'); SM.go(TitleScene()); }
     };
     s.draw = (ctx) => {
@@ -585,7 +599,7 @@
         ctx.font = `15px ${F()}`; ctx.fillStyle = '#e8e0f8'; ctx.textAlign = 'left';
         let y = 220; for (const p of ch.profile) { y = wrapText(ctx, p, 548, y, 360, 23) + 34; }
         if (s.react) { panel(ctx, 140, 560, 280, 50, ch.color, 0.9); text(ctx, s.react, 280, 592, 16, '#fff', 'center'); }
-      } else { title(ctx, '？？？', 548, 150, 40); text(ctx, '還沒有遇見她。', 548, 200, 16, '#ccc'); }
+      } else { title(ctx, '？？？', 548, 150, 40); text(ctx, id === 'sou' ? '……這一格，好像本來就有人。' : '還沒有遇見她。', 548, 200, 16, '#ccc'); if (id === 'sou') text(ctx, '（提示：通關一次。或者，問問住在存檔裡的那個人。）', 548, 230, 13, '#9a90b8'); }
       ids.forEach((cid, i) => { const x = 560 + i * 44, on = i === s.sel; ctx.beginPath(); ctx.arc(x, 670, on ? 16 : 12, 0, TAU); ctx.fillStyle = unlocked(cid) ? FW.CHARS[cid].color : '#444'; ctx.globalAlpha = on ? 1 : 0.5; ctx.fill(); ctx.globalAlpha = 1; });
       text(ctx, '◀ ▶ 切換　Z 戳一下（換表情）　X 返回', 40, 700, 13, '#b8b0d8');
     };
@@ -611,14 +625,14 @@
       if (s.tab === 0) {
         text(ctx, '角色', 60, 124, 15, '#ffb8d0'); ['Easy', 'Normal', 'Hard'].forEach((n, i) => text(ctx, n, 260 + i * 150, 124, 15, '#ffb8d0'));
         text(ctx, 'Extra', 720, 124, 15, '#ffb8d0'); text(ctx, '∞ 最長存活', 800, 124, 15, '#ffb8d0');
-        FW.PLAYABLE.forEach((id, i) => {
-          const y = 164 + i * 44, c = d.clears[id] || { story: {} };
+        FW.roster().forEach((id, i) => {
+          const y = 164 + i * 42, c = d.clears[id] || { story: {} };
           text(ctx, FW.CHARS[id].name, 60, y, 18, FW.CHARS[id].color);
           ['easy', 'normal', 'hard'].forEach((df, j) => { const h = d.hi['story:' + id + ':' + df] || 0; text(ctx, (c.story && c.story[df] ? '★ ' : '') + U.fmtScore(h), 260 + j * 150, y, 16, c.story && c.story[df] ? '#ffe9a8' : '#ddd'); });
           text(ctx, c.extra ? '★ ' + U.fmtScore(d.hi['extra:' + id + ':normal'] || 0) : U.fmtScore(d.hi['extra:' + id + ':normal'] || 0), 700, y, 14, c.extra ? '#ffe9a8' : '#aaa');
           const eb = d.endlessBest[id]; text(ctx, eb ? U.fmtTime(eb.time) : '--:--', 820, y, 16, '#cfe0ff');
         });
-        const st = [['總遊玩時間', U.fmtTime(d.playTime)], ['開啟遊戲次數', d.boots], ['倒下次數', d.deaths], ['接關次數', d.continues], ['使用符卡', d.bombs], ['累計擦彈', d.grazeTotal], ['看過的結局', Object.keys(d.endings).length + ' / 8'], ['第一次見面', new Date(d.firstBoot).toLocaleDateString()]];
+        const st = [['總遊玩時間', U.fmtTime(d.playTime)], ['開啟遊戲次數', d.boots], ['倒下次數', d.deaths], ['接關次數', d.continues], ['使用符卡', d.bombs], ['累計擦彈', d.grazeTotal], ['看過的結局', Object.keys(d.endings).length + ' / ' + (FW.roster().length + 2)], ['第一次見面', new Date(d.firstBoot).toLocaleDateString()]];
         st.forEach(([k, v], i) => { const x = 60 + (i % 2) * 430, y = 470 + Math.floor(i / 2) * 40; text(ctx, k, x, y, 16, '#b8b0d8'); text(ctx, String(v), x + 380, y, 18, '#fff', 'right'); });
       } else if (s.tab === 1) {
         const all = FW.BOSSES.all();
@@ -651,20 +665,21 @@
   const Practice = FW.Practice = function () {
     const all = FW.BOSSES.all(), d = Save.data;
     const seen = sp => ['easy', 'normal', 'hard'].some(df => d.spells[sp.char + ':' + sp.phase.id + ':' + df]);
-    const s = { sel: 0, t: 0, top: 0, ch: FW.PLAYABLE.indexOf(d.lastChar || 'rinne'), df: ['easy', 'normal', 'hard'].indexOf(d.lastDiff || 'normal') };
+    const RO = FW.roster();
+    const s = { sel: 0, t: 0, top: 0, ch: RO.indexOf(d.lastChar || 'rinne'), df: ['easy', 'normal', 'hard'].indexOf(d.lastDiff || 'normal') };
     if (s.ch < 0) s.ch = 0; if (s.df < 0) s.df = 1;
     s.enter = () => A().play('select');
     s.update = () => {
       s.t++; s.sel = menuNav(s.sel, all.length);
       if (s.sel < s.top) s.top = s.sel; if (s.sel >= s.top + 11) s.top = s.sel - 10;
-      if (Input.repeat('left')) { s.ch = (s.ch + 5) % 6; A().sfx('cursor'); }
-      if (Input.repeat('right')) { s.ch = (s.ch + 1) % 6; A().sfx('cursor'); }
+      if (Input.repeat('left')) { s.ch = (s.ch + RO.length - 1) % RO.length; A().sfx('cursor'); }
+      if (Input.repeat('right')) { s.ch = (s.ch + 1) % RO.length; A().sfx('cursor'); }
       if (Input.hit('focus')) { s.df = (s.df + 1) % 3; A().sfx('cursor'); }
       if (Input.hit('confirm')) {
         const sp = all[s.sel];
         if (!seen(sp)) { A().sfx('back'); return; }
         A().sfx('select');
-        SM.go(GameScene({ mode: 'practice', char: FW.PLAYABLE[s.ch], diff: ['easy', 'normal', 'hard'][s.df], bossKey: sp.key, lv: sp.lv, stage: sp.stage }));
+        SM.go(GameScene({ mode: 'practice', char: RO[s.ch], diff: ['easy', 'normal', 'hard'][s.df], bossKey: sp.key, lv: sp.lv, stage: sp.stage }));
       }
       if (Input.hit('cancel')) { A().sfx('back'); SM.go(TitleScene()); }
     };
@@ -679,7 +694,7 @@
         text(ctx, FW.CHARS[sp.char].name, 610, y, 13, FW.CHARS[sp.char].color, 'right');
       });
       FW._menuRects = all.slice(s.top, s.top + 11).map((_, j) => ({ x: 40, y: 130 + j * 44 - 28, w: 580, h: 42, i: s.top + j }));
-      const ch = FW.CHARS[FW.PLAYABLE[s.ch]];
+      const ch = FW.CHARS[RO[s.ch]];
       panel(ctx, 650, 90, 280, 520, ch.color);
       Art.portrait(ctx, ch.spec, 790, 280, 0.95, { t: s.t, expr: 'serious' });
       title(ctx, ch.name, 790, 470, 28, '#fff', 'center');

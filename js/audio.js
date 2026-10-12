@@ -369,6 +369,8 @@
         case 'laser': noise(0.5, 0.12, 'bandpass', 600, 2400); tone('sawtooth', 220, 440, 0.5, 0.04); break;
         case 'charge': tone('sawtooth', 200, 1600, 0.8, 0.05); break;
         case 'whoosh': noise(0.4, 0.2, 'bandpass', 600, 3000); break;
+        case 'slash': noise(0.35, 0.45, 'highpass', 9000, 1500); tone('triangle', 3400, 2400, 0.9, 0.07); tone('sine', 5200, 5000, 1.4, 0.03); break;
+        case 'sheathe': tone('square', 2200, 2100, 0.04, 0.06); noise(0.08, 0.2, 'bandpass', 4000, 3000); tone('triangle', 1400, 1400, 0.25, 0.04, 0.05); break;
         case 'boom': noise(1.0, 0.4, 'lowpass', 1200, 60); tone('sine', 70, 30, 0.8, 0.4); break;
         case 'type': tone('square', 1100 + Math.random() * 300, 0, 0.02, 0.05); noise(0.02, 0.08, 'highpass', 5000); break;
         case 'stretch': tone('sawtooth', 120, 60, 0.6, 0.08); break;

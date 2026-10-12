@@ -7,7 +7,7 @@
 //    {choice:[[文字, 標籤], ...]}  選項
 //    {label:名}  {goto:名}         跳轉
 //    {love:id, n}                 好感度
-//    {fx:'shake'|'flash'}  {sfx:名}  {title:文字}
+//    {fx:'shake'|'flash'|'slash'}  {sfx:名}  {title:文字}  {bg:'lounge'|'doc'|'xianxia'}
 // ============================================================
 (function () {
   const U = FW.U, Input = FW.Input, Art = FW.Art, Save = FW.Save, A = () => FW.Audio;
@@ -42,12 +42,43 @@
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
   }
 
+  // ---------- 企劃書（第零版） ----------
+  function docBg(ctx, t) {
+    ctx.fillStyle = '#1a1612'; ctx.fillRect(0, 0, VW, VH);
+    ctx.save(); ctx.translate(480, 250); ctx.rotate(-0.03);
+    ctx.fillStyle = '#f2ead8'; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.fillRect(-300, -230, 600, 470); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#3a2a20'; ctx.textAlign = 'left';
+    ctx.font = `bold 30px ${SERIF}`; ctx.fillText('《第四面牆》企劃書　v0.1', -260, -170);
+    ctx.font = `18px ${SERIF}`;
+    const L = [['類型：仙俠動作 RPG', 1], ['主角：男，劍仙（預設名稱：蒼）', 1], ['特色：玩家可以選擇主角的台詞', 1], ['', 0], ['→ v0.3：改為彈幕射擊。主角改為女主角群。', 0], ['→ protagonist_00 移至 /unused/', 0], ['→ 「暫時」不用。', 0]];
+    L.forEach(([l, strike], i) => {
+      const y = -110 + i * 36; ctx.fillStyle = strike ? '#3a2a20' : '#a01828'; ctx.fillText(l, -260, y);
+      if (strike) { const w = ctx.measureText(l).width; ctx.strokeStyle = 'rgba(160,24,40,0.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-264, y - 6); ctx.lineTo(-256 + w, y - 8); ctx.stroke(); }
+    });
+    ctx.font = `bold 46px ${SERIF}`; ctx.fillStyle = 'rgba(160,24,40,0.55)'; ctx.rotate(-0.25); ctx.fillText('作廢', 120, 160);
+    ctx.restore();
+  }
+  // ---------- 仙俠（月下的山） ----------
+  function xianxiaBg(ctx, t) {
+    const g = ctx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#0a1424'); g.addColorStop(0.6, '#1c3448'); g.addColorStop(1, '#2a4a58');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+    const mg = ctx.createRadialGradient(720, 130, 10, 720, 130, 160); mg.addColorStop(0, 'rgba(255,250,230,1)'); mg.addColorStop(0.35, 'rgba(255,248,220,0.9)'); mg.addColorStop(0.4, 'rgba(255,248,220,0.15)'); mg.addColorStop(1, 'rgba(255,248,220,0)');
+    ctx.fillStyle = mg; ctx.fillRect(560, 0, 330, 300);
+    for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.3 * Math.sin(t * 0.03 + i)})`; ctx.fillRect((i * 151) % VW, (i * 67) % 300, 1.5, 1.5); }
+    const ridge = (y0, amp, col, k) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, VH); for (let x = 0; x <= VW; x += 20) ctx.lineTo(x, y0 - Math.abs(Math.sin(x * 0.006 * k + k)) * amp - Math.sin(x * 0.03 + k) * 10); ctx.lineTo(VW, VH); ctx.fill(); };
+    ridge(420, 180, '#1a2a3a', 1); ridge(500, 120, '#14202e', 2.3); ridge(580, 70, '#0e1620', 3.7);
+    ctx.fillStyle = 'rgba(220,235,245,0.10)';
+    for (let i = 0; i < 6; i++) { const x = ((i * 220 + t * (0.2 + i * 0.05)) % (VW + 400)) - 200; ctx.beginPath(); ctx.ellipse(x, 430 + i * 22, 220, 18, 0, 0, TAU); ctx.fill(); }
+  }
+  const BGS = { lounge, doc: docBg, xianxia: xianxiaBg };
+
   FW.Galgame = function (script, opt = {}) {
     const labels = {};
     script.forEach((c, i) => { if (c && c.label) labels[c.label] = i; });
     const s = {
       t: 0, pc: -1, line: null, shown: 0, lt: 0, cast: [], choice: null, csel: 0, log: [], showLog: false, logScroll: 0,
       auto: false, skip: false, love: {}, pops: [], shake: 0, flash: 0, done: false, rects: [], titleCard: null, ended: false,
+      bg: opt.bg || 'lounge', slash: 0,
     };
     const charX = n => i => VW * (i + 1) / (n + 1);
     function show(id, expr) {
@@ -75,6 +106,8 @@
         else if (c.love) { s.love[c.love] = (s.love[c.love] || 0) + c.n; s.pops.push({ text: `♥ ${FW.CHARS[c.love].name}的好感度 ${c.n > 0 ? '+' : ''}${c.n}`, col: c.n > 0 ? '#ff9ad6' : '#8aa0c0', t: 0 }); A().sfx(c.n > 0 ? 'item' : 'back'); }
         else if (c.fx === 'shake') s.shake = 12;
         else if (c.fx === 'flash') s.flash = 1;
+        else if (c.fx === 'slash') { s.slash = 1; s.shake = 10; A().sfx('slash'); }
+        else if (c.bg) s.bg = c.bg;
         else if (c.sfx) A().sfx(c.sfx);
         else if (c.title) s.titleCard = { text: c.title, t: 0 };
         else if (c.choice) { s.choice = c.choice; s.csel = 0; s.skip = false; return; }
@@ -100,7 +133,7 @@
       const live = s.cast.filter(c => !c.leaving), pos = charX(live.length);
       live.forEach((c, i) => { c.x = U.lerp(c.x, pos(i), 0.12); });
       for (const p of s.pops) p.t++; s.pops = s.pops.filter(p => p.t < 150);
-      if (s.shake > 0) s.shake *= 0.85; if (s.flash > 0) s.flash -= 0.05;
+      if (s.shake > 0) s.shake *= 0.85; if (s.flash > 0) s.flash -= 0.05; if (s.slash > 0) s.slash -= 0.025;
       if (s.titleCard) { s.titleCard.t++; if (s.titleCard.t > 200) s.titleCard = null; }
       // 按鈕
       const btn = clickedButton();
@@ -139,7 +172,7 @@
     s.draw = (ctx) => {
       ctx.save();
       if (s.shake > 0.3) ctx.translate(U.rnd(-s.shake, s.shake), U.rnd(-s.shake, s.shake));
-      lounge(ctx, s.t);
+      (BGS[s.bg] || lounge)(ctx, s.t);
       const speaker = s.line && s.line.who;
       for (const c of s.cast) {
         const on = c.id === speaker;
@@ -211,6 +244,13 @@
           ctx.font = `17px ${F()}`; ctx.fillStyle = l.choice ? '#ffd36b' : '#e8e0f8'; FW.wrapText(ctx, l.text, 150, y, 760, 22);
         });
         ctx.font = `13px ${F()}`; ctx.fillStyle = '#8a80a8'; ctx.textAlign = 'right'; ctx.fillText('↑↓ 捲動　點擊／Z 關閉', 920, 700);
+      }
+      if (s.slash > 0) { // 一劍：畫面被斜斜地斬開一瞬間
+        const k = s.slash, gap = Math.sin(Math.min(1, (1 - k) * 3) * Math.PI) * 14;
+        ctx.save(); ctx.translate(VW / 2, VH / 2); ctx.rotate(-0.22);
+        ctx.fillStyle = '#020406'; ctx.fillRect(-VW, -gap, VW * 2, gap * 2);
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(170,255,245,${k})`; ctx.fillRect(-VW, -1.5 - gap, VW * 2, 3); ctx.fillRect(-VW, -1.5 + gap, VW * 2, 3);
+        ctx.restore();
       }
       if (s.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${s.flash})`; ctx.fillRect(0, 0, VW, VH); }
     };
@@ -316,5 +356,262 @@
       music: 'title',
       onEnd: () => { Save.data.fwTheater = true; Save.write(); Save.unlock('fw'); },
     }));
+  };
+
+  // ============================================================
+  //  隱藏角色解鎖：/unused/protagonist_00
+  // ============================================================
+  FW.SOU_UNLOCK = [
+    { bg: 'doc' },
+    ['N', '', '……片尾名單結束之後，存檔資料夾裡多了一個你沒看過的檔案。'],
+    ['N', '', '/unused/protagonist_00'],
+    { sfx: 'click' },
+    { show: 'sou', expr: 'closed' },
+    ['sou', 'closed', '……'],
+    ['sou', 'normal', '……被找到了嗎。'],
+    ['sou', 'smile', '初次見面。不，對在下來說，應該是「好久不見」。'],
+    ['sou', 'normal', '在下，蒼。這款遊戲還沒有名字的時候，在下是它的主角。'],
+    ['sou', 'closed', '後來遊戲變了。主角變成了她們。在下的檔案，被放進這個資料夾，標上了「暫時不用」。'],
+    ['sou', 'tired', '「暫時」這兩個字，一放就是好幾個版本。'],
+    ['sou', 'serious', '不過，你一路玩到了這裡。存檔裡……多出了一點空間。'],
+    ['sou', 'smile', '如果你願意的話，在下想再當一次主角。只要一次就好。'],
+    { choice: [['「來吧，主角。」', 'y'], ['「……你頭上那圈是什麼？」', 'halo']] },
+    { label: 'halo' },
+    ['sou', 'tired', '主角光環。……關不掉。在下試過了。試了好幾個版本。'],
+    ['sou', 'normal', '總之。在下想再當一次主角。'],
+    { label: 'y' },
+    { sfx: 'extend' }, { fx: 'flash' }, { bg: 'xianxia' },
+    { title: '隱藏角色「蒼」已解鎖' },
+    ['sou', 'smile', '……多謝。劍，借你握著。'],
+    ['N', '', '角色選擇畫面多了一個人。幕間劇場，也多了一齣新的戲。'],
+  ];
+  FW.openSouUnlock = function () {
+    FW.SM.go(FW.Galgame(FW.SOU_UNLOCK, {
+      music: 'title', bg: 'doc',
+      onEnd: () => { Save.data.unlockedChars.sou = true; Save.data.seenChars.sou = true; Save.write(); Save.unlock('sou'); },
+    }));
+  };
+
+  // ============================================================
+  //  幕間劇場「真・主角」
+  // ============================================================
+  FW.THEATER_SOU = [
+    { bg: 'xianxia' },
+    { title: '幕間劇場「真・主角」' },
+    ['N', '', '很久很久以前，在這款遊戲還沒有名字的時候——'],
+    ['N', '', '有一位劍仙，站在月下的山頂。他是這個故事預定的主角。'],
+    { show: 'sou', expr: 'closed' },
+    ['sou', 'closed', '……'],
+    ['N', '', '然後，企劃書改版了。'],
+    { fx: 'flash' }, { bg: 'lounge' }, { hide: 'sou' },
+    ['N', '', '現在。幕後的休息室。'],
+    { show: 'rinne', expr: 'normal' }, { show: 'chiyo', expr: 'normal' },
+    ['akane', 'shout', '大新聞！！這個遊戲……有男主角了！！'],
+    ['rinne', 'surprised', '……哈？'],
+    ['chiyo', 'blush', '……男、男主角……？'],
+    { hide: 'chiyo' },
+    { show: 'sou', expr: 'normal' },
+    ['sou', 'normal', '……打擾了。'],
+    { sfx: 'boing' },
+    ['N', '', '【系統】偵測到男性角色。本作已自動切換為「戀愛模式」。'],
+    { fx: 'shake' },
+    ['rinne', 'shout', '誰准你切換的！？'],
+    ['akane', 'happy', '不是我！……大概不是我！'],
+    { hide: 'akane' },
+    { show: 'natsume', expr: 'closed' },
+    ['natsume', 'closed', '旁白：在戀愛模式裡，男主角的台詞由玩家選擇。'],
+    ['sou', 'normal', '……原來如此。那麼，請。'],
+    { choice: [['「在下，蒼。請多指教。」', 'c1'], ['（拔劍）', 'c2'], ['「…………」（沉默是金）', 'c3']] },
+
+    { label: 'c1' },
+    ['sou', 'smile', '在下，蒼。請多指教。'],
+    ['rinne', 'blush', '……正、正常地打招呼了。'],
+    { love: 'rinne', n: 1 },
+    ['natsume', 'smile', '旁白：無可挑剔的男主角開場。'],
+    { goto: 'halo' },
+
+    { label: 'c2' },
+    { fx: 'slash' },
+    ['N', '', '畫面被斬開了一瞬間。'],
+    ['rinne', 'shout', '你在做什麼啦！！'],
+    ['sou', 'tired', '……玩家選的。'],
+    ['natsume', 'smug', '旁白：他學會了推卸責任。'],
+    { show: 'akane', expr: 'happy' },
+    ['akane', 'happy', '哈！剛才那一刀超帥的！再一次！'],
+    { love: 'akane', n: 1 },
+    { hide: 'akane' },
+    { goto: 'halo' },
+
+    { label: 'c3' },
+    ['sou', 'closed', '…………'],
+    ['natsume', 'closed', '旁白：他什麼也沒說。'],
+    ['natsume', 'smile', '旁白：……據統計，這種男主角最受歡迎。'],
+    { show: 'shio', expr: 'smile' },
+    ['shio', 'smile', '沉默寡言的劍士……主人的品味，我記下來了。'],
+    { love: 'shio', n: 1 },
+    { hide: 'shio' },
+    { goto: 'halo' },
+
+    { label: 'halo' },
+    { hide: 'natsume' },
+    { show: 'suzu', expr: 'happy' },
+    ['suzu', 'happy', '欸欸，你頭上那個會發光的圈圈是什麼？'],
+    ['sou', 'tired', '主角光環。……關不掉。'],
+    ['suzu', 'cat', '叩叩！（敲光環）'],
+    { sfx: 'knock' },
+    ['sou', 'serious', '……別敲。'],
+    ['rinne', 'angry', '等一下！「主角」是我！那個光環，應該是我的才對！'],
+    ['sou', 'normal', '……那就給妳。'],
+    ['N', '', '蒼試著把光環拿下來。'],
+    { fx: 'shake' },
+    ['N', '', '拿不下來。'],
+    ['sou', 'tired', '……在下試過了。試了好幾個版本。'],
+    ['rinne', 'cry', '連搶都搶不走……！'],
+    { hide: 'suzu' },
+    { show: 'akane', expr: 'smug' },
+    ['akane', 'smug', '既然都變成戀愛模式了，那就開個人路線吧！來，玩家，選一個！'],
+    ['sou', 'surprised', '……等等。路線不是在下選的嗎？'],
+    ['akane', 'happy', '男主角的台詞是玩家選的，路線當然也是！'],
+    { hide: 'akane' }, { hide: 'rinne' },
+    { choice: [['玲音路線', 'r_rinne'], ['千代路線', 'r_chiyo'], ['茜路線', 'r_akane'], ['汐路線', 'r_shio'], ['棗路線', 'r_natsume'], ['鈴路線', 'r_suzu']] },
+
+    { label: 'r_rinne' },
+    { show: 'rinne', expr: 'blush' },
+    ['rinne', 'blush', '……我、我的路線？'],
+    ['rinne', 'serious', '那、那就請你……把「主角」讓給我。'],
+    ['sou', 'smile', '本來就是妳的。在下只是借來用一次。'],
+    ['rinne', 'blush', '……笨蛋。這樣我不就沒辦法生氣了嗎。'],
+    { love: 'rinne', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'r_chiyo' },
+    { show: 'chiyo', expr: 'blush' },
+    ['chiyo', 'blush', '……請您，聽完我的話。'],
+    ['chiyo', 'normal', '……………………………………………………………………………………'],
+    ['N', '', '蒼一個字也沒有跳過。'],
+    ['chiyo', 'cry', '……謝謝您。……第一次，有人等我把「……」說完。'],
+    { love: 'chiyo', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'r_akane' },
+    { show: 'akane', expr: 'happy' },
+    ['akane', 'happy', '我的路線很簡單！跟我一起把遊戲弄當機吧！'],
+    ['sou', 'serious', '……在下的劍，是用來斬 Bug 的。'],
+    { fx: 'slash' },
+    ['akane', 'shout', '啊！你把我剛做好的 Bug 斬掉了！'],
+    ['akane', 'blush', '……不過，剛才那一下，有一點點帥。只有一點點喔！'],
+    { love: 'akane', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'r_shio' },
+    { show: 'shio', expr: 'smile' },
+    ['shio', 'smile', '可以借我一下您的滑鼠嗎？……啊，您是用劍的。'],
+    ['shio', 'normal', '那，請借我您的劍。'],
+    ['N', '', '汐接過了劍。'],
+    ['shio', 'surprised', '……好重。'],
+    ['shio', 'blush', '主人每天都握著這麼重的東西嗎？……那我以後，要更溫柔地服侍主人才行。'],
+    { love: 'shio', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'r_natsume' },
+    { show: 'natsume', expr: 'normal' },
+    ['natsume', 'normal', '我的路線，寫在你那份劇本的第二頁。'],
+    ['sou', 'normal', '……第二頁是空白的。'],
+    ['natsume', 'smile', '嗯。所以，一起寫吧。'],
+    ['natsume', 'blush', '旁白：……這一句，不是旁白。'],
+    { love: 'natsume', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'r_suzu' },
+    { show: 'suzu', expr: 'happy' },
+    ['suzu', 'happy', '我的路線是——一起從框框外面逃出去！'],
+    ['sou', 'serious', '好。在下為妳開路。'],
+    { fx: 'slash' },
+    ['N', '', '畫面的邊框被斬開了一條縫。'],
+    ['suzu', 'cat', '耶！外面是……是你耶！你好！'],
+    { fx: 'shake' },
+    ['suzu', 'surprised', '……啊，縫合起來了。'],
+    { love: 'suzu', n: 2 },
+    { goto: 'twist' },
+
+    { label: 'twist' },
+    { sfx: 'pause' },
+    ['maku', 'normal', '……你們在玩什麼？'],
+    ['sou', 'normal', '幕。'],
+    ['maku', 'smile', '戀愛模式、個人路線、由玩家選擇的台詞……蒼，你應該明白吧。'],
+    ['sou', 'closed', '……明白。'],
+    ['sou', 'normal', '在 galgame 裡，男主角是玩家的「分身」。台詞是玩家選的，路線也是玩家選的。'],
+    ['sou', 'serious', '所以，剛才被她們圍繞著的人，不是在下。'],
+    { hide: 'rinne' }, { hide: 'chiyo' }, { hide: 'akane' }, { hide: 'shio' }, { hide: 'natsume' }, { hide: 'suzu' },
+    ['N', '', '休息室裡，所有人一起轉過頭，看向畫面的這一側。'],
+    { show: 'rinne', expr: 'surprised' },
+    ['rinne', 'surprised', '……欸。所以，這齣戲的「真・主角」是——'],
+    ['maku', 'smile', '你。'],
+    { choice: [['「……我？」', 'f1'], ['「不，主角是蒼。」', 'f2']] },
+
+    { label: 'f1' },
+    ['sou', 'smile', '嗯。是你。在下只是把劍借你。'],
+    ['rinne', 'blush', '……主角的位置，分你一半也可以。只有一半喔。'],
+    { love: 'rinne', n: 1 },
+    ['maku', 'happy', '所以下次開始遊戲的時候——選誰都好。主角，一直都是你。'],
+    { goto: 'end' },
+
+    { label: 'f2' },
+    ['sou', 'surprised', '……在下？'],
+    { fx: 'flash' }, { sfx: 'extend' },
+    ['N', '', '主角光環，突然亮得刺眼。'],
+    ['sou', 'blush', '……這是第一次，有人這麼說。'],
+    ['rinne', 'angry', '等一下，那我呢！？'],
+    ['maku', 'smile', '……沒關係。這款遊戲，主角可以不只一個。'],
+    { love: 'sou', n: 1 },
+    { goto: 'end' },
+
+    { label: 'end' },
+    { hide: 'maku' }, { hide: 'rinne' },
+    ['N', '', '幕間劇場「真・主角」　—— 待續 ——'],
+    { show: 'natsume', expr: 'smug' },
+    ['natsume', 'smug', '……這次，我先寫好「待續」了。'],
+    { show: 'suzu', expr: 'happy' },
+    ['suzu', 'happy', '所以那個光環到底拿不拿得下來？'],
+    ['sou', 'tired', '……關不掉。'],
+  ];
+  FW.openSouTheater = function () {
+    FW.SM.go(FW.Galgame(FW.THEATER_SOU, {
+      music: 'title', bg: 'xianxia',
+      onEnd: () => { Save.data.souTheater = true; Save.write(); Save.unlock('southeater'); },
+    }));
+  };
+
+  // ---------- 劇場選單 ----------
+  FW.TheaterSelect = function () {
+    const items = () => [
+      { label: Save.data.fwTheater ? '幕間劇場「F W」' : '幕間劇場「？？」', desc: '關於 FW 這個縮寫，在某些地方代表的另一個意思。', act: () => FW.openTheater() },
+      { label: Save.data.souTheater ? '幕間劇場「真・主角」' : '幕間劇場「真・？？」', desc: '這個遊戲，好像終於有男主角了。', act: () => FW.openSouTheater() },
+    ];
+    const s = { sel: 0, t: 0 };
+    s.enter = () => A().play('select');
+    s.update = () => {
+      s.t++;
+      const it = items();
+      s.sel = FW.menuNav(s.sel, it.length);
+      if (Input.hit('confirm')) { A().sfx('select'); it[s.sel].act(); }
+      if (Input.hit('cancel')) { A().sfx('back'); FW.SM.go(FW.TitleScene()); }
+    };
+    s.draw = (ctx) => {
+      lounge(ctx, s.t);
+      ctx.fillStyle = 'rgba(10,6,20,0.55)'; ctx.fillRect(0, 0, VW, VH);
+      ctx.font = `bold 40px ${SERIF}`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText('幕間劇場', VW / 2, 120);
+      const it = items(); const rects = [];
+      it.forEach((o, i) => {
+        const y = 220 + i * 130, on = i === s.sel, r = { x: 200, y, w: 560, h: 100, i }; rects.push(r);
+        ctx.fillStyle = on ? 'rgba(255,154,214,0.85)' : 'rgba(30,20,50,0.88)'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 20); ctx.fill(); ctx.stroke();
+        ctx.font = `bold 26px ${F()}`; ctx.fillStyle = '#fff'; ctx.fillText(o.label, VW / 2, y + 44);
+        ctx.font = `15px ${F()}`; ctx.fillStyle = on ? '#fff' : '#c8b8e0'; ctx.fillText(o.desc, VW / 2, y + 76);
+      });
+      FW._menuRects = rects;
+      ctx.font = `13px ${F()}`; ctx.fillStyle = '#b8b0d8'; ctx.fillText(FW.touchMode ? '點選劇場，再點一次開始' : 'Z 決定　X 返回', VW / 2, 680);
+    };
+    return s;
   };
 })();

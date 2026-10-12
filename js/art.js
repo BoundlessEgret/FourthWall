@@ -94,6 +94,7 @@
     swept: { tips: [[-50, 28], [-34, 14], [-16, 10], [2, 6], [18, 0], [32, -4], [46, 8], [54, 26]], rec: -16, lean: 8 },
     hime: { tips: [[-48, 4], [-34, 1], [-20, 3], [-6, 0], [8, 3], [22, 0], [36, 2], [48, 4]], rec: -8 },
     messy: { tips: [[-52, 28], [-38, 6], [-26, 14], [-10, 2], [4, 12], [18, 0], [32, 12], [46, 6], [54, 26]], rec: -16, lean: 4 },
+    sword: { tips: [[-56, 34], [-44, 8], [-32, 18], [-20, -2], [-9, 10], [-3, 42], [7, 4], [20, 14], [32, -4], [44, 12], [56, 32]], rec: -18, lean: 3 },
   };
   function bangsPath(ctx, kind) {
     const B = BANGS[kind] || BANGS.straight, tips = B.tips, lean = B.lean || 0;
@@ -127,8 +128,12 @@
   }
 
   // ---------- 臉 ----------
-  function facePath(ctx) {
+  function facePath(ctx, male) {
     ctx.beginPath();
+    if (male) { // 稜角分明的下顎
+      ctx.moveTo(-50, -8); ctx.lineTo(-48, 22); ctx.quadraticCurveTo(-44, 40, -28, 52); ctx.lineTo(-10, 63); ctx.quadraticCurveTo(0, 67, 10, 63); ctx.lineTo(28, 52); ctx.quadraticCurveTo(44, 40, 48, 22); ctx.lineTo(50, -8);
+      ctx.ellipse(0, -8, 50, 52, 0, 0, Math.PI, true); ctx.closePath(); return;
+    }
     ctx.moveTo(-51, -8);
     ctx.bezierCurveTo(-52, 22, -42, 44, -18, 58);
     ctx.quadraticCurveTo(0, 68, 18, 58);
@@ -140,6 +145,7 @@
     const col = side > 0 ? spec.eye : (spec.eye2 || spec.eye);
     ctx.save();
     ctx.translate(side * 23, 14); ctx.scale(side, 1);
+    if (spec.male) { ctx.translate(0, 3); ctx.scale(1.02, 0.72); ctx.rotate(-0.06); }
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (eyeMode === 'happy') {
       ctx.beginPath(); ctx.moveTo(-12, 5); ctx.quadraticCurveTo(1, -10, 15, 4);
@@ -185,7 +191,7 @@
       ctx.beginPath(); ctx.moveTo(14, -3); ctx.lineTo(19, -6); ctx.lineWidth = 2.2; ctx.stroke();
     } else {
       ctx.beginPath(); ctx.moveTo(-13, 3); ctx.bezierCurveTo(-10, -11, 8, -16, 16, -6); ctx.lineWidth = 3; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(4, -13.5); ctx.quadraticCurveTo(12, -11, 16, -6); ctx.lineTo(20, -9); ctx.lineWidth = 3.8; ctx.stroke();
+      if (!spec.male) { ctx.beginPath(); ctx.moveTo(4, -13.5); ctx.quadraticCurveTo(12, -11, 16, -6); ctx.lineTo(20, -9); ctx.lineWidth = 3.8; ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(-6, -17); ctx.quadraticCurveTo(4, -20, 13, -13); ctx.lineWidth = 0.9; ctx.strokeStyle = U.rgba(LASH, 0.45); ctx.stroke();
     }
     ctx.beginPath(); ctx.moveTo(5, 12.5); ctx.quadraticCurveTo(11, 11, 13.5, 7.5); ctx.lineWidth = 1.2; ctx.strokeStyle = U.rgba(LASH, 0.7); ctx.stroke();
@@ -199,8 +205,13 @@
       if (mode === 'angry') { inD = 5; outD = -2; }
       else if (mode === 'sad') { inD = -4; outD = 3; }
       else if (mode === 'up') { up = -4; }
+      if (spec.male) { // 劍眉：粗、直、往外上揚
+        ctx.beginPath(); ctx.moveTo(-12, -18 + inD + up); ctx.lineTo(2, -21 + up + (inD + outD) / 2); ctx.lineTo(17, -25 + outD + up); ctx.lineTo(16, -21 + outD + up); ctx.lineTo(2, -18 + up + (inD + outD) / 2); ctx.lineTo(-12, -16 + inD + up); ctx.closePath();
+        ctx.fillStyle = c; ctx.fill();
+      } else {
       ctx.beginPath(); ctx.moveTo(-11, -24 + inD + up); ctx.quadraticCurveTo(2, -29 + up + (inD + outD) / 2, 15, -23 + outD + up);
       ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = c; ctx.stroke();
+      }
       ctx.restore();
     }
   }
@@ -293,7 +304,8 @@
     const o = spec.outfit, main = o.main, sub = o.sub, acc = o.accent, line = U.shade(main, -0.55);
     const skin = spec.skin;
     // 脖子
-    ctx.beginPath(); ctx.moveTo(-13, 40); ctx.lineTo(13, 40); ctx.lineTo(15, 96); ctx.lineTo(-15, 96); ctx.closePath();
+    const nk = spec.male ? 3 : 0;
+    ctx.beginPath(); ctx.moveTo(-13 - nk, 40); ctx.lineTo(13 + nk, 40); ctx.lineTo(15 + nk, 96); ctx.lineTo(-15 - nk, 96); ctx.closePath();
     fillStroke(ctx, skin, U.shade(skin, -0.3), 1);
     ctx.beginPath(); ctx.ellipse(0, 60, 16, 10, 0, 0, TAU); ctx.fillStyle = U.rgba(U.shade(skin, -0.25), 0.6); ctx.fill();
     if (o.type === 'hoodie') { // 帽兜在後
@@ -319,7 +331,7 @@
       for (let i = -1; i <= 1; i += 2) { ctx.beginPath(); ctx.moveTo(i * 30, 200); ctx.quadraticCurveTo(i * 40, 260, i * 36, 320); ctx.strokeStyle = U.rgba(U.shade(main, -0.6), 0.4); ctx.lineWidth = 2; ctx.stroke(); }
       return;
     }
-    torsoPath(ctx, o.type === 'kimono' ? 1.08 : 1);
+    torsoPath(ctx, o.type === 'kimono' ? 1.08 : o.type === 'hanfu' ? 1.14 : 1);
     const g = ctx.createLinearGradient(-90, 90, 90, 320); g.addColorStop(0, U.shade(main, 0.15)); g.addColorStop(1, U.shade(main, -0.2));
     fillStroke(ctx, g, line);
     // 衣褶
@@ -374,6 +386,30 @@
         for (let y = 150; y < 320; y += 22) { ctx.beginPath(); ctx.moveTo(-10, y); ctx.lineTo(10, y + 10); ctx.moveTo(10, y); ctx.lineTo(-10, y + 10); ctx.stroke(); }
         ctx.beginPath(); ctx.moveTo(-82, 118); ctx.bezierCurveTo(-100, 100, -110, 140, -92, 160); ctx.closePath(); fillStroke(ctx, U.shade(main, 0.1), line);
         ctx.beginPath(); ctx.moveTo(82, 118); ctx.bezierCurveTo(100, 100, 110, 140, 92, 160); ctx.closePath(); fillStroke(ctx, U.shade(main, 0.1), line);
+        break;
+      }
+      case 'hanfu': { // 蒼：交領長袍
+        // 內襯（交領）
+        ctx.beginPath(); ctx.moveTo(-20, 84); ctx.lineTo(24, 168); ctx.lineTo(34, 160); ctx.lineTo(-2, 84); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-24, 84); ctx.lineTo(26, 186); ctx.lineWidth = 11; ctx.strokeStyle = sub; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(24, 84); ctx.lineTo(4, 128); ctx.lineWidth = 9; ctx.strokeStyle = sub; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-24, 84); ctx.lineTo(26, 186); ctx.lineWidth = 2; ctx.strokeStyle = acc; ctx.stroke();
+        // 外袍的雲紋
+        ctx.strokeStyle = U.rgba(sub, 0.35); ctx.lineWidth = 2;
+        for (const [x, y, k] of [[-62, 170, 1], [64, 262, -1], [-48, 290, 1]]) { ctx.beginPath(); ctx.arc(x, y, 9, Math.PI * 0.2, Math.PI * 1.6); ctx.arc(x + k * 14, y - 4, 6, Math.PI, Math.PI * 2.3); ctx.stroke(); }
+        // 腰帶
+        const sash = o.sash || '#182030';
+        ctx.fillStyle = sash; ctx.fillRect(-104, 226, 208, 26); ctx.strokeStyle = U.shade(sash, 0.4); ctx.lineWidth = 1.5; ctx.strokeRect(-104, 226, 208, 26);
+        ctx.fillStyle = acc; ctx.fillRect(-104, 237, 208, 3);
+        // 玉珮
+        ctx.beginPath(); ctx.moveTo(-40, 252); ctx.lineTo(-40, 276); ctx.strokeStyle = acc; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(-40, 288, 11, 0, TAU); fillStroke(ctx, U.mix(acc, '#ffffff', 0.25), U.shade(acc, -0.45), 1.5);
+        ctx.beginPath(); ctx.arc(-40, 288, 4, 0, TAU); ctx.fillStyle = U.shade(acc, -0.3); ctx.fill();
+        for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(-40 + i * 2, 298); ctx.lineTo(-40 + i * 4, 318); ctx.strokeStyle = U.shade(acc, -0.2); ctx.lineWidth = 1.5; ctx.stroke(); }
+        // 寬肩的披風邊
+        ctx.strokeStyle = sub; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(-93, 124); ctx.bezierCurveTo(-104, 170, -106, 250, -108, 320); ctx.moveTo(93, 124); ctx.bezierCurveTo(104, 170, 106, 250, 108, 320); ctx.stroke();
         break;
       }
       case 'shift': { // 無名：未完成的貼圖
@@ -432,6 +468,20 @@
         ctx.fillRect(-24, -10, 48, 20); ctx.strokeRect(-24, -10, 48, 20);
         ctx.font = 'bold 12px monospace'; ctx.fillStyle = '#ff00dc'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('NULL', 0, 1);
         ctx.restore();
+      } else if (a === 'crown') { // 髮冠＋簪
+        ctx.save(); ctx.translate(0, -70);
+        const cg = ctx.createLinearGradient(0, -26, 0, 0); cg.addColorStop(0, '#f4f8ff'); cg.addColorStop(1, '#8a9ab0');
+        ctx.beginPath(); ctx.moveTo(-15, 2); ctx.lineTo(-12, -16); ctx.quadraticCurveTo(0, -27, 12, -16); ctx.lineTo(15, 2); ctx.closePath(); fillStroke(ctx, cg, '#4a5a70', 1.4);
+        ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(28, -24); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#d4dce8'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(29, -25, 3.5, 0, TAU); ctx.fillStyle = spec.outfit.accent; ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -10, 3.6, 0, TAU); ctx.fillStyle = spec.outfit.accent; ctx.fill();
+        ctx.restore();
+      } else if (a === 'halo') { // 主角光環（關不掉）
+        ctx.save(); ctx.translate(0, -112 + Math.sin(t * 0.05) * 3);
+        ctx.shadowColor = '#ffe27a'; ctx.shadowBlur = 14;
+        ctx.beginPath(); ctx.ellipse(0, 0, 42, 10, 0, 0, TAU); ctx.lineWidth = 5; ctx.strokeStyle = '#ffe27a'; ctx.stroke();
+        ctx.shadowBlur = 0; ctx.lineWidth = 1.5; ctx.strokeStyle = '#fffbe0'; ctx.stroke();
+        ctx.restore();
       } else if (a === 'flower') {
         ctx.save(); ctx.translate(-44, -48);
         for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.ellipse(Math.cos(k * TAU / 5) * 7, Math.sin(k * TAU / 5) * 7, 6, 4, k * TAU / 5, 0, TAU); fillStroke(ctx, spec.pin || '#ffd0e0', U.shade(spec.pin || '#ffd0e0', -0.4), 1); }
@@ -451,12 +501,13 @@
     const t = opt.t || 0, ex = EXPR[opt.expr] || EXPR.normal;
     const skin = spec.skin;
     // 臉
-    facePath(ctx);
+    const male = !!spec.male;
+    facePath(ctx, male);
     const fg = ctx.createRadialGradient(-10, 10, 10, 0, 10, 70);
     fg.addColorStop(0, U.shade(skin, 0.25)); fg.addColorStop(0.7, skin); fg.addColorStop(1, U.shade(skin, -0.12));
     fillStroke(ctx, fg, U.shade(skin, -0.35), 1.2);
     // 腮紅
-    const bl = ex.blush || spec.blush || 0.6;
+    const bl = ex.blush || spec.blush || (male ? 0.22 : 0.6);
     for (const s of [-1, 1]) {
       const rg = ctx.createRadialGradient(s * 30, 33, 1, s * 30, 33, 14);
       rg.addColorStop(0, `rgba(255,110,140,${0.28 * bl})`); rg.addColorStop(1, 'rgba(255,110,140,0)');
@@ -475,9 +526,10 @@
     ctx.beginPath(); ctx.moveTo(1, 29); ctx.lineTo(-0.5, 31.5); ctx.strokeStyle = U.shade(skin, -0.35); ctx.lineWidth = 1.2; ctx.stroke();
     let mouth = ex.mouth;
     if (opt.talking && Math.floor(t / 5) % 2 === 0) mouth = mouth === 'o' ? 'small' : (mouth === 'open' || mouth === 'grin' ? 'small' : 'small');
-    drawMouth(ctx, mouth);
+    if (male) { ctx.save(); ctx.translate(0, 41); ctx.scale(0.82, 0.82); ctx.translate(0, -41); drawMouth(ctx, mouth); ctx.restore(); }
+    else drawMouth(ctx, mouth);
     // 瀏海陰影
-    ctx.save(); facePath(ctx); ctx.clip();
+    ctx.save(); facePath(ctx, male); ctx.clip();
     ctx.translate(0, 6); bangsPath(ctx, spec.style.bangs); ctx.fillStyle = U.rgba(U.shade(skin, -0.35), 0.45); ctx.fill();
     ctx.restore();
     // 側髮
@@ -498,6 +550,23 @@
     accFront(ctx, spec, t);
   }
 
+  // 背上的劍（劍鞘）：沿著局部 x 軸，劍柄朝 +x
+  function swordBack(ctx, spec, x, y, rot, k) {
+    const acc = spec.outfit.accent;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(k, k);
+    ctx.lineCap = 'butt';
+    ctx.fillStyle = '#1a2636'; ctx.fillRect(-140, -6, 254, 12); ctx.strokeStyle = '#0a0e16'; ctx.lineWidth = 1.5; ctx.strokeRect(-140, -6, 254, 12);
+    ctx.fillStyle = '#c8d4e0'; for (const sx of [-136, -40, 96]) ctx.fillRect(sx, -6.5, 8, 13);
+    ctx.fillStyle = '#e8c860'; ctx.beginPath(); ctx.roundRect(112, -15, 7, 30, 2); ctx.fill(); ctx.strokeStyle = '#7a5a10'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#20283a'; ctx.fillRect(119, -4.5, 46, 9);
+    ctx.strokeStyle = '#4a5a74'; ctx.lineWidth = 1.2; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(121 + i * 7.5, -4.5); ctx.lineTo(126 + i * 7.5, 4.5); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(169, 0, 6, 0, TAU); ctx.fillStyle = '#e8c860'; ctx.fill(); ctx.strokeStyle = '#7a5a10'; ctx.stroke();
+    ctx.strokeStyle = acc; ctx.lineWidth = 2.2;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(172, 0); ctx.quadraticCurveTo(190, 10 + i * 4, 186 + i * 3, 34); ctx.stroke(); }
+    ctx.restore();
+  }
+  Art.swordBack = swordBack;
+
   // ---------- 立繪 ----------
   // opt: {t, expr, talking, look, alpha, dim}
   Art.portrait = function (ctx, spec, x, y, scale, opt = {}) {
@@ -508,6 +577,7 @@
     ctx.scale(scale, scale);
     ctx.translate(0, br);
     backHair(ctx, spec, opt.t || 0, 1);
+    if ((spec.acc || []).includes('sword')) swordBack(ctx, spec, 0, 140, -2.35, 1);
     outfit(ctx, spec);
     ctx.translate(0, -br * 0.5);
     ctx.rotate(Math.sin((opt.t || 0) * 0.02) * 0.015 + (opt.tilt || 0));
@@ -529,6 +599,7 @@
         ctx.restore();
       }
     }
+    if (o.type === 'hanfu') return chibiHanfu(ctx, spec, t, lean);
     // 腿
     const kick = Math.sin(t * 0.15) * 3;
     for (const s of [-1, 1]) {
@@ -561,6 +632,39 @@
       ctx.beginPath(); ctx.arc(s * 38, 100 + sw * s, 6, 0, TAU); fillStroke(ctx, skin, U.shade(skin, -0.35), 1.2);
     }
   }
+  function chibiHanfu(ctx, spec, t, lean) {
+    const o = spec.outfit, main = o.main, sub = o.sub, acc = o.accent, line = U.shade(sub, -0.4), skin = spec.skin;
+    const kick = Math.sin(t * 0.15) * 3;
+    // 褲＋靴
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.roundRect(s * 10 - 7, 130, 14, 34 + (s > 0 ? kick : -kick), 5); ctx.fillStyle = spec.sock; ctx.fill();
+      ctx.beginPath(); ctx.roundRect(s * 10 - 8, 156 + (s > 0 ? kick : -kick), 16, 14, 4); ctx.fillStyle = spec.shoe; ctx.fill();
+    }
+    // 長袍下襬（前開衩）
+    ctx.beginPath(); ctx.moveTo(-24, 94); ctx.lineTo(24, 94); ctx.lineTo(34 + lean * 5, 156); ctx.lineTo(4 + lean * 5, 152); ctx.lineTo(0, 120); ctx.lineTo(-4 + lean * 5, 152); ctx.lineTo(-34 + lean * 5, 156); ctx.closePath();
+    const rg = ctx.createLinearGradient(0, 94, 0, 156); rg.addColorStop(0, main); rg.addColorStop(1, U.shade(main, -0.15));
+    fillStroke(ctx, rg, line, 1.6);
+    ctx.beginPath(); ctx.moveTo(-33 + lean * 5, 153); ctx.lineTo(-4 + lean * 5, 150); ctx.moveTo(4 + lean * 5, 150); ctx.lineTo(33 + lean * 5, 153); ctx.strokeStyle = sub; ctx.lineWidth = 3; ctx.stroke();
+    // 軀幹（寬肩）
+    ctx.beginPath(); ctx.moveTo(-15, 52); ctx.quadraticCurveTo(-31, 54, -30, 66); ctx.lineTo(-23, 100); ctx.lineTo(23, 100); ctx.lineTo(30, 66); ctx.quadraticCurveTo(31, 54, 15, 52); ctx.closePath();
+    fillStroke(ctx, main, line, 1.6);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-12, 53); ctx.lineTo(10, 88); ctx.lineWidth = 5; ctx.strokeStyle = sub; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(12, 53); ctx.lineTo(2, 70); ctx.lineWidth = 4; ctx.stroke();
+    // 腰帶＋玉珮
+    ctx.fillStyle = o.sash || '#182030'; ctx.fillRect(-24, 86, 48, 10); ctx.fillStyle = acc; ctx.fillRect(-24, 90, 48, 2);
+    ctx.beginPath(); ctx.moveTo(-12, 96); ctx.lineTo(-12, 106 + Math.sin(t * 0.1) * 1.5); ctx.strokeStyle = acc; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(-12, 110 + Math.sin(t * 0.1) * 1.5, 4.5, 0, TAU); ctx.fillStyle = U.mix(acc, '#ffffff', 0.3); ctx.fill();
+    // 寬袖
+    const sw = Math.sin(t * 0.12) * 4;
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(s * 24, 56); ctx.quadraticCurveTo(s * 44, 70 + s * lean * 4, s * 42, 92 + sw * s);
+      ctx.lineWidth = 17; ctx.lineCap = 'round'; ctx.strokeStyle = line; ctx.stroke(); ctx.lineWidth = 14; ctx.strokeStyle = main; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(s * 42, 100 + sw * s, 11, 7, s * 0.3, 0, TAU); fillStroke(ctx, main, line, 1.4);
+      ctx.beginPath(); ctx.ellipse(s * 42, 101 + sw * s, 9, 4, s * 0.3, 0, TAU); ctx.strokeStyle = sub; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(s * 42, 106 + sw * s, 5, 0, TAU); fillStroke(ctx, skin, U.shade(skin, -0.35), 1.1);
+    }
+  }
   Art.chibi = function (ctx, spec, x, y, scale, opt = {}) {
     const t = opt.t || 0, lean = opt.lean || 0;
     ctx.save();
@@ -569,6 +673,7 @@
     ctx.save(); ctx.translate(-lean * 4, 0);
     backHair(ctx, spec, t + lean * 20, 0.55);
     ctx.restore();
+    if ((spec.acc || []).includes('sword')) swordBack(ctx, spec, -4, 80, -2.2, 0.42);
     chibiBody(ctx, spec, t, lean, opt.wings);
     ctx.save(); ctx.rotate(-lean * 0.05);
     drawHead(ctx, spec, { t, expr: opt.expr || 'normal', blink: opt.blink, look: { x: lean * 2, y: 1 } });

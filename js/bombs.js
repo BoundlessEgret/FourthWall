@@ -371,4 +371,110 @@
     }
     end() { this.g.fieldStretch = 1; this.g.hudSquash = 1; }
   };
+
+  // ==================== 蒼：一劍．斬第四面牆 ====================
+  // 把整個畫面（連分數欄一起）沿著一條斜線斬開，露出「畫面的背面」——也就是這個招式自己的程式碼。
+  const CUT = 56, CLOSE0 = 132, CLOSE1 = 150;
+  B.sou = class extends Base {
+    constructor(g) {
+      super(g, 210); this.d = 0; this.snap = null; this.seam = 0;
+      g.cutin.t = 50; // 立繪早點退場，讓出「斬」的瞬間
+      const lines = String(B.sou).split('\n').map(l => l.trim()).filter(Boolean);
+      this.code = lines.map((l, i) => [l, lines[(i + 1) % lines.length], lines[(i + 2) % lines.length]].join('    '));
+    }
+    step(t) {
+      const g = this.g;
+      if (t < CUT + 14) { g.freezeWorld = 2; g.freezePlayer = true; }
+      if (t === 1) g.sfx('charge');
+      if (t === 30) g.sfx('sheathe');
+      if (t === CUT) {
+        g.sfx('slash'); g.sfx('impact'); g.doFlash(0.8, '#ffffff'); g.shake(12);
+        g.clearBullets(true); g.lasers.length = 0; dmgAll(g, 45);
+        FW.Title.set('第四面牆 ／ FourthWall', 5000); FW.Outside.vibrate([40, 30, 220]);
+        FW.Outside.say('sou', '……抱歉，把你的螢幕斬開了。放心，在下會縫回去的。', { expr: 'closed', key: 'soubomb', cool: 90000 });
+      }
+      if (t === CUT + 14) g.freezePlayer = false;
+      if (t > CUT && t < CLOSE1) { g.clearBullets(false); if (t % 4 === 0) dmgAll(g, 3); }
+      // 裂口的寬度
+      if (t > CUT && t <= CUT + 18) this.d = U.easeOut((t - CUT) / 18) * 46;
+      else if (t > CLOSE0 && t <= CLOSE1) { this.d = 46 * (1 - U.easeIn((t - CLOSE0) / (CLOSE1 - CLOSE0))); if (t === CLOSE1) { this.d = 0; this.seam = 1; g.sfx('sheathe'); g.shake(4); } }
+      if (this.seam > 0 && t > CLOSE1) this.seam = Math.max(0, 1 - (t - CLOSE1) / 55);
+    }
+    drawField(ctx) {
+      const g = this.g, t = this.t, p = g.player;
+      if (t < CUT) {
+        const a = Math.min(1, t / 20);
+        ctx.save(); ctx.globalAlpha = a * 0.55; ctx.fillStyle = '#05080e'; ctx.fillRect(0, 0, W, H); ctx.restore();
+        // 居合：劍光在鞘口一閃
+        const k = U.clamp((t - 30) / 20, 0, 1);
+        ctx.save(); ctx.translate(p.x, p.y); ctx.globalAlpha = a;
+        ctx.strokeStyle = U.rgba('#5ae0d4', 0.6); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 40 + Math.sin(t * 0.3) * 3, 0, TAU); ctx.stroke();
+        if (k > 0) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(200,255,250,${k * 0.8})`; ctx.beginPath(); ctx.ellipse(0, -8, 4 + k * 60, 2 + k * 2, -0.22, 0, TAU); ctx.fill(); }
+        ctx.restore();
+        if (t > 8) bubble(ctx, U.clamp(p.x, 160, W - 160), p.y - 70, t < 32 ? '……在下，借這一劍。' : '斬。', '#3cc8c0', t < 32 ? 15 : 22);
+      }
+    }
+    // 切線：通過畫面（目前顯示範圍）的中心，略微傾斜
+    line() { const V = FW.view; return { cx: V.x + V.w / 2, cy: V.y + V.h / 2, a: -0.22, L: Math.hypot(V.w, V.h) }; }
+    drawScreen(ctx) {
+      const t = this.t, { cx, cy, a, L } = this.line();
+      if (t >= 36 && t < CUT + 6) { // 預兆：一條細細的光
+        const k = U.clamp((t - 36) / 18, 0, 1), w = t >= CUT ? 10 * (1 - (t - CUT) / 6) + 2 : 1 + k * 1.5;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(190,255,250,${0.35 + k * 0.6})`; ctx.fillRect(-L / 2 * (t >= CUT ? 1 : k), -w / 2, L * (t >= CUT ? 1 : k), w);
+        ctx.restore();
+      }
+      if (this.seam > 0) { // 縫合的痕跡
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.globalAlpha = this.seam;
+        ctx.strokeStyle = '#bffff8'; ctx.lineWidth = 1.5; ctx.setLineDash([10, 6]); ctx.beginPath(); ctx.moveTo(-L / 2, 0); ctx.lineTo(L / 2, 0); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = `13px ${F()}`; ctx.fillStyle = '#dffffb'; ctx.textAlign = 'center'; ctx.fillText('（已縫合。如有接縫，屬正常現象。）', 0, -10);
+        ctx.restore();
+      }
+    }
+    post(ctx, canvas) {
+      if (this.d <= 0.5) return;
+      const cw = canvas.width, ch = canvas.height, k = cw / FW.view.w;
+      if (!this.snap || this.snap.width !== cw || this.snap.height !== ch) { this.snap = document.createElement('canvas'); this.snap.width = cw; this.snap.height = ch; }
+      const sx = this.snap.getContext('2d'); sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, cw, ch); sx.drawImage(canvas, 0, 0);
+      const a = -0.22, ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca, d = this.d * k, R = Math.hypot(cw, ch);
+      const cx = cw / 2, cy = ch / 2, t = this.t;
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      // 畫面的背面
+      ctx.fillStyle = '#030608'; ctx.fillRect(0, 0, cw, ch);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+      const fs = Math.max(9, 11 * k), lh = fs * 1.35, rows = Math.ceil((d * 2) / lh) + 2, scroll = (t - CUT) * 0.6;
+      ctx.font = `${fs}px monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.beginPath(); ctx.rect(-R, -d, R * 2, d * 2); ctx.clip();
+      for (let r = 0; r < rows; r++) {
+        const y = -d + r * lh + lh / 2, li = (Math.floor(scroll / lh) + r) % this.code.length;
+        ctx.fillStyle = r % 7 === 3 ? '#ffd36b' : '#3cc8c0'; ctx.globalAlpha = 0.85;
+        ctx.fillText(this.code[li] || '', -cw * 0.62 + ((r * 53) % 140), y);
+      }
+      ctx.globalAlpha = 1;
+      if (this.d > 30) {
+        const msg = '［ 畫面的背面 ］　你平常看不到的地方。這一招的原始碼，就寫在這裡。', fz = Math.max(11, 14 * k);
+        ctx.font = `bold ${fz}px ${F()}`; ctx.textAlign = 'center'; const mw = ctx.measureText(msg).width + 24 * k;
+        ctx.fillStyle = 'rgba(3,6,8,0.85)'; ctx.fillRect(-mw / 2, -fz, mw, fz * 2); ctx.fillStyle = '#ffffff'; ctx.fillText(msg, 0, 0);
+      }
+      ctx.restore();
+      // 兩半的畫面，各自往外推開
+      for (const sgn of [-1, 1]) {
+        ctx.save();
+        ctx.translate(nx * sgn * d, ny * sgn * d);
+        // 以切線為界的半平面（大多邊形）
+        const px = cx + nx * sgn * R, py = cy + ny * sgn * R;
+        ctx.beginPath();
+        ctx.moveTo(cx - ca * R, cy - sa * R); ctx.lineTo(cx + ca * R, cy + sa * R); ctx.lineTo(px + ca * R, py + sa * R); ctx.lineTo(px - ca * R, py - sa * R); ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(this.snap, 0, 0);
+        ctx.restore();
+        // 切口的光
+        ctx.save(); ctx.translate(cx + nx * sgn * d, cy + ny * sgn * d); ctx.rotate(a);
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(160,255,245,0.7)'; ctx.fillRect(-R, -1.5 * k, R * 2, 3 * k);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    end() { this.g.freezePlayer = false; }
+  };
 })();

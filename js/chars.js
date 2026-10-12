@@ -111,6 +111,26 @@ FW.CHARS = {
       '喜歡：寬螢幕、全螢幕模式。討厭：黑邊。',
     ],
   },
+  // ---- 隱藏角色 ----
+  sou: {
+    id: 'sou', name: '蒼', reading: 'Sou', title: '劍仙（預設主角）', color: '#3cc8c0', voice: 330, male: true, hidden: true,
+    spec: {
+      male: true, hair: '#1c2232', hairHi: '#8fb4e8', eye: '#3ab8d8', skin: '#fae6da', seed: 9,
+      style: { back: 'ponytail', bangs: 'sword', lock: 132 },
+      outfit: { type: 'hanfu', main: '#f2f5fa', sub: '#24586a', accent: '#5ae0d4', skirt: '#24586a', sash: '#182030' },
+      acc: ['crown', 'halo', 'sword'], sock: '#1e2636', shoe: '#141a26',
+    },
+    shotName: '御劍術', shotDesc: '四柄飛劍環繞身旁。高速時呈扇形散射，低速時並排成一線齊射。',
+    bombName: '一劍．斬第四面牆', bombDesc: '拔劍，把「螢幕」本身斬成兩半。……斬完會縫回去，放心。',
+    speed: 4.7, focusSpeed: 2.0,
+    profile: [
+      '這款遊戲最初的企劃書，第一頁寫著：「主角：男，劍仙。」——那就是他。',
+      '後來遊戲改成了少女們的彈幕射擊，他的檔案被移進了「/unused/」資料夾，一放就是好幾個版本。',
+      '頭頂上那圈光是「主角光環」。他本人很困擾，因為它關不掉。',
+      '自稱「在下」。沉默寡言、一劍破萬法——他說，那是玩家想成為的模樣，不是他自己的。',
+      '喜歡：月光、御劍飛行、被玩家記住。討厭：「預設名稱」。',
+    ],
+  },
   // ---- 非可操作角色 ----
   nanashi: {
     id: 'nanashi', name: '無名', reading: '???', title: '未命名角色_07', color: '#c0c0d0', voice: 400, boss: true,
@@ -142,3 +162,6 @@ FW.CHARS = {
   },
 };
 FW.PLAYABLE = ['rinne', 'chiyo', 'akane', 'shio', 'natsume', 'suzu'];
+FW.HIDDEN = ['sou'];
+// 可以選的角色（隱藏角色解鎖後才會出現）
+FW.roster = () => [...FW.PLAYABLE, ...FW.HIDDEN.filter(id => FW.Save.data && FW.Save.data.unlockedChars && FW.Save.data.unlockedChars[id])];

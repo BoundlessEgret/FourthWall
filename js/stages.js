@@ -147,7 +147,7 @@
   }
 
   // ---------- 一般關卡 ----------
-  function* heroStage(g, s, bossId) {
+  function* heroStage(g, s, bossId, midId = bossId) {
     const lv = s, cA = COLS[s % COLS.length], cB = COLS[(s + 2) % COLS.length];
     yield 220;
     yield* Wv.swoop(g, lv, 1, 8, cA); yield 60;
@@ -157,7 +157,7 @@
     yield* Wv.big(g, lv, W / 2, 'purple', s % 3); yield 60;
     yield* Wv.rain(g, lv, 200, cB); yield 100;
     // 中頭目
-    yield* midboss(g, bossId, FW.BOSSES.mid(bossId, lv), FW.STORY.midQuip(g.charId, bossId));
+    yield* midboss(g, midId, FW.BOSSES.mid(midId, lv), FW.STORY.midQuip(g.charId, midId));
     yield 60;
     yield* Wv.circle(g, lv); yield 80;
     if (s >= 3) { yield* Wv.wall(g, lv); yield 60; yield* Wv.snipers(g, lv); }
@@ -168,9 +168,11 @@
     yield* bossBattle(g, bossId, FW.BOSSES.heroine(bossId, lv), { pre: FW.STORY.pre(g.charId, bossId, s), post: FW.STORY.post(g.charId, bossId, s) });
   }
 
-  const order = id => FW.PLAYABLE.filter(c => c !== id);
+  // 蒼（隱藏角色）的路線：最後一關是「主角之爭」
+  const SOU_ROUTE = ['suzu', 'chiyo', 'shio', 'natsume', 'rinne'], SOU_MID = ['suzu', 'chiyo', 'akane', 'natsume', 'rinne'];
+  const order = id => id === 'sou' ? SOU_ROUTE : FW.PLAYABLE.filter(c => c !== id);
   FW.STAGES = {};
-  for (let s = 1; s <= 5; s++) FW.STAGES[s] = function* (g) { yield* heroStage(g, s, order(g.charId)[s - 1]); };
+  for (let s = 1; s <= 5; s++) FW.STAGES[s] = function* (g) { yield* heroStage(g, s, order(g.charId)[s - 1], g.charId === 'sou' ? SOU_MID[s - 1] : undefined); };
   // 第六關：無名（中頭目）→ 幕
   FW.STAGES[6] = function* (g) {
     const lv = 6;

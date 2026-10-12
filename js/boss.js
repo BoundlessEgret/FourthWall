@@ -19,6 +19,7 @@
       .replace(/\{cont\}/g, d.continues)
       .replace(/\{os\}/g, FW.Real.platform())
       .replace(/\{name\}/g, g ? g.ch.name : '')
+      .replace(/\{ni\}/g, g && g.ch.male ? '你' : '妳')
       .replace(/\{bombs\}/g, d.bombs)
       .replace(/\{graze\}/g, d.grazeTotal)
       .replace(/\{session\}/g, U.fmtTime(FW.sessionFrames / 60 || 0))

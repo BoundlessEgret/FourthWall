@@ -99,6 +99,13 @@
         const n = 1 + L, s = Spr.pshot('page', '#9a3ad0');
         for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2); P(this.x + off * (F ? 8 : 20), this.y - 8, off * (F ? 0.2 : 1.2), F ? -12 : -9, 6.2, s, { pierce: new Set(), r: 12 }); }
         A().sfx('shoot');
+      } else if (id === 'sou') {
+        // 御劍術：飛劍＋劍氣
+        if (t % 7 === 0) {
+          const s = Spr.pshot('sword', '#5ae0d4');
+          for (let i = 0; i < L; i++) { const o = this.opts[i], off = i - (L - 1) / 2, ang = -Math.PI / 2 + (F ? 0 : off * 0.16); P(o.x, o.y - 8, Math.cos(ang) * 17, Math.sin(ang) * 17, 3.0, s, { rot: ang + Math.PI / 2 }); }
+        }
+        if (F && t % 12 === 0) { P(this.x, this.y - 20, 0, -13, 4.5, Spr.pshot('qi', '#5ae0d4'), { r: 14, pierce: new Set() }); A().sfx('shoot'); }
       } else if (id === 'suzu' && t % 6 === 0) {
         const n = L + 2, s = Spr.bullet('note', 'orange');
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * (F ? 0.3 : 1.4); P(this.x, this.y - 8, Math.cos(a) * 12, Math.sin(a) * 12, 2.4, s, { bounce: 2, scale: 0.8 }); }
@@ -117,6 +124,10 @@
       const L = this.L;
       for (let i = 0; i < L; i++) {
         const o = this.opts[i];
+        if (this.ch.id === 'sou') { // 飛劍使魔
+          ctx.save(); ctx.translate(o.x, o.y + Math.sin(this.t * 0.1 + i) * 2); ctx.rotate(this.focus ? 0 : (i - (L - 1) / 2) * 0.16);
+          ctx.drawImage(Spr.pshot('sword', '#5ae0d4').c, -15, -18, 30, 30); ctx.restore(); continue;
+        }
         ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(this.t * 0.08);
         ctx.fillStyle = U.rgba(this.ch.color, 0.35); ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.strokeRect(-4.5, -4.5, 9, 9);
