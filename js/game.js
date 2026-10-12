@@ -464,7 +464,7 @@
       for (const b of this.bullets) {
         if (b.dead || b.spawn > 2 || b.harmless) continue;
         const dx = b.x - p.x, dy = b.y - p.y, d2 = dx * dx + dy * dy;
-        const hr = b.r * (b.scale || 1) * 0.9 + hb;
+        const hr = b.r * (b.scale || 1) * 0.75 + hb;
         if (d2 < gr * gr) {
           if (!b.grazed) { b.grazed = true; this.graze++; Save.data.grazeTotal++; this.addScore(500); this.sfx('graze'); this.fx.push({ type: 'spark', x: p.x + dx * 0.5, y: p.y + dy * 0.5, vx: U.rnd(-2, 2), vy: U.rnd(-2, 2), life: 12, max: 12, col: '#ffffff' }); }
           if (d2 < hr * hr) { if (p.invuln <= 0) { this.hitPlayer(); if (!this.bombFx) b.dead = true; } }
@@ -476,7 +476,7 @@
         if (wNow < 3) continue;
         const ex = l.x + Math.cos(l.angle) * l.len, ey = l.y + Math.sin(l.angle) * l.len;
         const d = segDist(p.x, p.y, l.x, l.y, ex, ey);
-        if (d < wNow * 0.38 + hb && p.invuln <= 0) this.hitPlayer();
+        if (d < wNow * 0.33 + hb && p.invuln <= 0) this.hitPlayer();
         else if (d < wNow * 0.5 + 20 && this.t % 6 === 0) { this.graze++; this.addScore(300); this.sfx('graze'); }
       }
       for (const e of this.enemies) {

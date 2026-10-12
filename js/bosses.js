@@ -259,10 +259,10 @@
     ov(b, g, { render(ctx) { ctx.save(); ctx.font = `bold 13px monospace`; ctx.textAlign = 'left'; ctx.fillStyle = lag > 0 ? '#ff4060' : '#7aff9a'; ctx.fillText('FPS: ' + (lag > 0 ? 3 : 60), 8, H - 20); if (lag > 0) { ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(0, 0, W, H); bigText(ctx, '（沒有回應）', W / 2, 330, 26, '#fff', 0.85); } ctx.restore(); } });
     let k = 0;
     while (true) {
-      for (let f = 0; f < 60; f++) {
-        for (let s = 0; s < 2; s++) g.shot(b.x, b.y, k * 0.15 + s * Math.PI, 2.6, 'shard', s ? 'red' : 'cyan');
+      for (let f = 0; f < (g.diff === 'hard' ? 60 : 40); f++) {
+        for (let s = 0; s < 2; s++) g.shot(b.x, b.y, k * (g.diff === 'hard' ? 0.15 : 0.22) + s * Math.PI, 2.6, 'shard', s ? 'red' : 'cyan');
         if (f % 20 === 0) g.fan(b.x, b.y, g.aim(b.x, b.y), g.n(5), 0.6, 3, 'orb', 'green');
-        k++; yield 2;
+        k++; yield g.diff === 'hard' ? 2 : 3;
       }
       lag = 22; g.freezeWorld = 22; g.sfx('error'); FW.Outside.say('akane', '（沒有回應）……騙你的啦，遊戲還活著！', { expr: 'smug', key: 'hang', cool: 60000 }); FW.Audio.stutter(0.36); FW.Title.set('第四面牆 FourthWall (沒有回應)', 900);
       yield 1;
@@ -303,10 +303,15 @@
         ctx.restore();
       } });
       g.sfx('click');
-      for (let f = 0; f < 70; f++) { if (f % 25 === 0) g.fan(b.x, b.y, g.aim(b.x, b.y), g.n(3), 0.4, 2.6, 'cursor', 'blue'); yield 1; }
+      for (let f = 0; f < 80; f++) {
+        if (f % 25 === 0) g.fan(b.x, b.y, g.aim(b.x, b.y), g.n(3), 0.4, 2.6, 'cursor', 'blue');
+        if (f % 26 === 2) g.text(cx, y0 - 22, f < 26 ? (g.diff === 'hard' ? '快離開選取框！' : '離開選取框，或待在正中央！') : 'Delete 倒數 ' + (3 - Math.floor(f / 26)), '#ffd0d8', 14, 24);
+        yield 1;
+      }
       o.kill(); g.sfx('cancel'); g.text(cx, cy, 'Delete', '#ff6080', 18, 40);
-      const step = g.diff === 'easy' ? 24 : 17;
-      const edge = (x, y) => { const a = U.ang(x, y, cx, cy), d = U.dist(x, y, cx, cy); g.shot(x, y, a, 1.6, 'small', 'red', { life: Math.floor(d / (1.6 * g.D.spd)) }); };
+      const step = g.diff === 'easy' ? 36 : g.diff === 'normal' ? 30 : 23;
+      const safeR = g.diff === 'easy' ? 56 : g.diff === 'normal' ? 44 : 0;
+      const edge = (x, y) => { const a = U.ang(x, y, cx, cy), d = U.dist(x, y, cx, cy); g.shot(x, y, a, 1.6, 'small', 'red', { life: Math.max(1, Math.floor((d - safeR) / (1.6 * g.D.spd))) }); };
       for (let x = x0; x <= x0 + w; x += step) { edge(x, y0); edge(x, y0 + h); }
       for (let y = y0 + step; y < y0 + h; y += step) { edge(x0, y); edge(x0 + w, y); }
       g.ring(b.x, b.y, g.n(16), 2, 'orb', 'cyan', U.rnd(TAU));
@@ -375,7 +380,7 @@
   const CREDIT_WORDS = ['主演', '彈幕設計', '腳本', '玩家', '特別感謝', '你', '音樂', '舞台', '燈光', '劇本'];
   P.natsume_s1 = { spell: true, id: 'credits', name: '片尾名單「提前謝幕」', hp: 1400, time: 42, *gen(b, g, lv) {
     let k = 0;
-    const minGap = g.diff === 'easy' ? 110 : 80;
+    const minGap = g.diff === 'easy' ? 120 : g.diff === 'normal' ? 96 : 80;
     while (true) {
       // 一行字從下方往上捲
       let x = U.rnd(-40, 20), gapDone = false;
@@ -458,10 +463,10 @@
   } };
   P.suzu_s2 = { spell: true, id: 'squeeze', name: '縮框「4:3 → 1:1」', hp: 1500, time: 42, *gen(b, g, lv) {
     let k = 0;
-    const target = g.diff === 'easy' ? 70 : 96;
+    const target = g.diff === 'easy' ? 60 : g.diff === 'normal' ? 80 : 96, bnc = g.diff === 'hard' ? 2 : 1;
     while (true) {
       g.wallL = g.wallR = U.lerp(g.wallL, target * (0.6 + 0.4 * Math.sin(k * 0.01)), 0.03);
-      if (k % 18 === 0) g.fan(b.x, b.y, Math.PI / 2 + Math.sin(k * 0.05) * 0.8, g.n(5), 1.2, 2.6, 'orb', 'orange', { bounceWalls: 2 });
+      if (k % 18 === 0) g.fan(b.x, b.y, Math.PI / 2 + Math.sin(k * 0.05) * 0.8, g.n(5), 1.2, 2.6, 'orb', 'orange', { bounceWalls: bnc });
       if (k % 70 === 0) g.fan(b.x, b.y, g.aim(b.x, b.y), g.n(3), 0.3, 3, 'note', 'cyan');
       if (k % 120 === 0) g.sfx('stretch');
       k++; yield 1;
@@ -564,7 +569,7 @@
     const origins = [[0, 0], [W, 0], [W / 2, -20]];
     let k = 0;
     while (true) {
-      const ls = origins.map(([x, y], i) => g.laser(x, y, U.ang(x, y, g.player.x, g.player.y) + (i - 1) * 0.3, 900, 26, 60, 140, 'yellow', { fn(l, gg) { if (l.t > l.warn) l.angle += (i === 1 ? -1 : 1) * 0.004; } }));
+      const ls = origins.map(([x, y], i) => g.laser(x, y, U.ang(x, y, g.player.x, g.player.y) + (i - 1) * 0.3, 900, 26, 60, 140, 'yellow', { fn(l, gg) { if (l.t > l.warn) l.angle += (i - 1) * (g.diff === 'easy' ? 0.002 : 0.003); } }));
       g.sfx('charge');
       for (let f = 0; f < 200; f++) { if (f % 30 === 0) g.ring(b.x, b.y, g.n(14), 1.8, 'rice', 'red', U.rnd(TAU)); yield 1; }
       k++; yield* b.wander(30);
