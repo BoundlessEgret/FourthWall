@@ -222,6 +222,14 @@
       case 'frown': ctx.moveTo(-6, 44); ctx.quadraticCurveTo(0, 39, 6, 44); ctx.stroke(); break;
       case 'cat': ctx.moveTo(-7, 40); ctx.quadraticCurveTo(-3.5, 45, 0, 41); ctx.quadraticCurveTo(3.5, 45, 7, 40); ctx.stroke(); break;
       case 'smirk': ctx.moveTo(-5, 42); ctx.quadraticCurveTo(2, 44.5, 7, 38.5); ctx.stroke(); break;
+      case 'clench':
+        ctx.beginPath(); ctx.roundRect(-10, 38, 20, 8, 3); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = lc; ctx.lineWidth = 1.6; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-9, 42); ctx.lineTo(9, 42); for (let x = -6; x <= 6; x += 4) { ctx.moveTo(x, 38.5); ctx.lineTo(x, 45.5); } ctx.lineWidth = 0.8; ctx.stroke(); break;
+      case 'yell':
+        ctx.moveTo(-10, 37); ctx.quadraticCurveTo(0, 35, 10, 37); ctx.quadraticCurveTo(8, 55, 0, 56); ctx.quadraticCurveTo(-8, 55, -10, 37);
+        ctx.fillStyle = '#7a2434'; ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 51, 5, 3, 0, 0, TAU); ctx.fillStyle = '#ec7d8e'; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-8, 38.5); ctx.lineTo(8, 38.5); ctx.lineWidth = 2.4; ctx.strokeStyle = '#fff'; ctx.stroke(); break;
       case 'wavy': ctx.moveTo(-7, 42); ctx.quadraticCurveTo(-3.5, 39, 0, 42); ctx.quadraticCurveTo(3.5, 45, 7, 42); ctx.stroke(); break;
       default: ctx.moveTo(-6, 40); ctx.quadraticCurveTo(0, 45, 6, 40); ctx.stroke();
     }
@@ -243,6 +251,8 @@
     serious: { eye: 'normal', brow: 'angry', mouth: 'flat' },
     cry: { eye: 'closed', brow: 'sad', mouth: 'wavy', tears: true, blush: 1 },
     blank: { eye: 'wide', brow: 'normal', mouth: 'flat' },
+    strain: { eye: 'normal', brow: 'angry', mouth: 'clench', sweat: true },
+    yell: { eye: 'normal', brow: 'angry', mouth: 'yell' },
   };
   Art.EXPR = EXPR;
 
@@ -459,6 +469,7 @@
     if (blink && (eyeMode === 'normal' || eyeMode === 'half' || eyeMode === 'wide')) eyeMode = 'closed';
     drawBrows(ctx, spec, ex.brow);
     drawEye(ctx, -1, spec, eyeMode, opt.look); drawEye(ctx, 1, spec, eyeMode, opt.look);
+    if (ex.sweat) { ctx.save(); ctx.translate(-44, -6); ctx.beginPath(); ctx.moveTo(0, -10); ctx.quadraticCurveTo(7, 2, 0, 8); ctx.quadraticCurveTo(-7, 2, 0, -10); ctx.fillStyle = 'rgba(170,220,255,0.9)'; ctx.fill(); ctx.strokeStyle = 'rgba(80,140,200,0.8)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore(); }
     if (ex.tears) { ctx.fillStyle = 'rgba(140,200,255,0.8)'; for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(s * 30, 26 + (t % 30) * 0.4, 2.5, 4, 0, 0, TAU); ctx.fill(); } }
     // 鼻 口
     ctx.beginPath(); ctx.moveTo(1, 29); ctx.lineTo(-0.5, 31.5); ctx.strokeStyle = U.shade(skin, -0.35); ctx.lineWidth = 1.2; ctx.stroke();

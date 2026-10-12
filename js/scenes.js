@@ -373,7 +373,7 @@
     if (g.hudPing > 0) { g.hudPing--; ctx.fillStyle = `rgba(255,154,60,${g.hudPing / 40})`; ctx.fillRect(PF.x + PF.w, PF.y, 20, PF.h); }
     // 遊戲區
     const fc = FW.fieldCanvas, fx = FW.fieldCtx, k = FW.fieldScale;
-    fx.setTransform(k, 0, 0, k, 0, 0);
+    fx.setTransform(k, 0, 0, k, 0, 0); fx.textAlign = 'left'; fx.textBaseline = 'alphabetic';
     fx.clearRect(0, 0, PF.w, PF.h);
     fx.save(); fx.beginPath(); fx.rect(0, 0, PF.w, PF.h); fx.clip();
     g.drawField(fx);

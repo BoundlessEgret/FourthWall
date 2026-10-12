@@ -95,6 +95,7 @@
     }
     applyView();
     setT();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     ctx.imageSmoothingQuality = 'high';
     FW._menuRects = null;
     FW.SM.draw(ctx);

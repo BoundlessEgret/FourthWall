@@ -242,11 +242,11 @@
         ctx.save(); ctx.strokeStyle = 'rgba(160,200,255,0.8)'; ctx.lineWidth = 1;
         for (const b of this.g.bullets) { const x = b.x + PF.x, y = b.y + PF.y; if (x > s.x0 && x < s.x1 && y > s.y0 && y < s.y1) ctx.strokeRect(x - 7, y - 7, 14, 14); }
         ctx.restore();
-        ctx.font = `13px ${F()}`; ctx.fillStyle = '#cfe0ff'; ctx.fillText(`已選取 ${this.g.bullets.length} 個項目`, s.x0 + 4, s.y0 - 4 + 20);
+        ctx.font = `13px ${F()}`; ctx.textAlign = 'left'; ctx.fillStyle = '#cfe0ff'; ctx.fillText(`已選取 ${this.g.bullets.length} 個項目`, s.x0 + 4, s.y0 - 4 + 20);
       }
       if (this.menu) {
         const m = this.menu, items = ['開啟(O)', '剪下(T)', '複製(C)', '刪除(D)', '內容(R)'];
-        ctx.save(); ctx.fillStyle = '#f6f6fa'; ctx.strokeStyle = '#888'; ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 10;
+        ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#f6f6fa'; ctx.strokeStyle = '#888'; ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 10;
         ctx.fillRect(m.x, m.y, 140, items.length * 28 + 8); ctx.shadowBlur = 0; ctx.strokeRect(m.x, m.y, 140, items.length * 28 + 8);
         items.forEach((it, i) => { const hy = m.y + 4 + i * 28; const hov = i === 3 && t > 110; if (hov) { ctx.fillStyle = '#cfe0ff'; ctx.fillRect(m.x + 3, hy, 134, 26); } ctx.fillStyle = '#222'; ctx.font = `15px ${F()}`; ctx.fillText(it, m.x + 14, hy + 19); });
         ctx.restore();
@@ -254,7 +254,7 @@
       if (t > 132 && t < 215) {
         const a = Math.min(1, (215 - t) / 20);
         ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = 'rgba(30,34,48,0.95)'; ctx.fillRect(FW.VW - 330, FW.VH - 90, 310, 70);
-        ctx.fillStyle = '#fff'; ctx.font = `bold 15px ${F()}`; ctx.fillText('🗑 資源回收筒', FW.VW - 316, FW.VH - 64);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `bold 15px ${F()}`; ctx.fillText('🗑 資源回收筒', FW.VW - 316, FW.VH - 64);
         ctx.font = `13px ${F()}`; ctx.fillStyle = '#cdd'; ctx.fillText(`已將 ${this.count} 個子彈移至資源回收筒。`, FW.VW - 316, FW.VH - 40); ctx.restore();
       }
       // 大游標

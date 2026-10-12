@@ -11,7 +11,8 @@
   const BEAT = 60 / 176, BAR = BEAT * 4;
   const T = {};
   T.AD = 0; T.INTRO = 6; T.DROP = 14; T.MONT_END = T.DROP + 8 * BAR; T.CARDS_END = T.MONT_END + 12 * BAR;
-  T.GAG_END = 45; T.VIL_END = T.GAG_END + 4 * BAR; T.CLIMAX_END = T.VIL_END + 6 * BAR; T.LOGO_END = T.CLIMAX_END + 4 * BAR; T.END = 75;
+  T.GAG_END = 45; T.VIL_END = T.GAG_END + 4 * BAR; T.RUSH_END = T.VIL_END + 4 * BAR; T.CLASH_END = T.RUSH_END + 8 * BAR;
+  T.CLIMAX_END = T.CLASH_END; T.LOGO_END = T.CLIMAX_END + 4 * BAR; T.END = Math.ceil(T.LOGO_END + 11);
   const TR = FW.Trailer = { W, H, T, DUR: T.END, live: false };
 
   // ---------- 遊戲引擎：靜音、唯讀存檔 ----------
@@ -268,7 +269,8 @@
   const MONT_TEXT = [['東方風格', '彈幕射擊'], ['6 位', '原創女主角'], ['40 張以上', '符卡'], ['全向量繪製', '全即時合成'], ['7 個關卡', '8 種結局'], ['打破', '第四面牆的符卡'], ['∞', '無盡幕間'], ['然後——', '她們']];
   function sceneMontage(ctx, t, lt) {
     const bar = Math.min(7, Math.floor(lt / BAR)), bl = lt - bar * BAR;
-    drawClipFrame(ctx, bar, t, bl, { x: bar % 2 ? 640 : 1280, rot: (bar % 2 ? 1 : -1) * 0.025 });
+    const half = Math.floor(bl / (2 * BEAT)), hl = bl - half * 2 * BEAT;
+    drawClipFrame(ctx, half ? (bar + 4) % 8 : bar, t, hl, { x: bar % 2 ? 640 : 1280, rot: (bar % 2 ? 1 : -1) * (half ? 0.045 : 0.025), scale: half ? 1.62 : 1.42 });
     const [a, b] = MONT_TEXT[bar], tx = bar % 2 ? 1430 : 490;
     speedLines(ctx, tx, H / 2, t, '#ffffff', 40, 0.12, 300);
     slam(ctx, a, tx, H / 2 - 110, bar === 6 ? 220 : 120, '#fff', bl - 0.05);
@@ -445,26 +447,166 @@
   }
 
   // ============================================================
-  //  6. 高潮
+  //  6. 實機衝刺（每一拍一刀）
   // ============================================================
-  const CLIMAX_CUTS = [8, 1, 4, 9, 2, 7, 10, 6, 0, 11, 3, 5];
-  function sceneClimax(ctx, t, lt) {
-    const cut = Math.min(11, Math.floor(lt / (2 * BEAT))), cl = lt - cut * 2 * BEAT;
-    drawClipFrame(ctx, CLIMAX_CUTS[cut], t, cl, { x: [960, 700, 1220][cut % 3], rot: [0, -0.04, 0.04][cut % 3], scale: 1.42 + (cut % 4 === 0 ? 0.25 : 0) });
-    const bar = Math.floor(lt / BAR), bl = lt - bar * BAR;
-    if (bar < 3) {
-      const c = TR.clips[CLIMAX_CUTS[cut]], bn = c.g.boss && c.g.boss.phase && c.g.boss.phase.name;
-      if (bn) slam(ctx, bn, cut % 3 === 1 ? 1420 : 480, 160, 54, '#fff', cl - 0.05, { shadow: FW.CHARS[c.g.boss.charId].color });
-    } else {
-      const word = ['打破', '第四', '面牆'][bar - 3];
-      ctx.fillStyle = `rgba(0,0,0,${0.55 - bl * 0.2})`; ctx.fillRect(0, 0, W, H);
-      speedLines(ctx, W / 2, H / 2, t, bar === 5 ? '#ff4a7a' : '#ffffff', 80, 0.35, 300);
-      slam(ctx, word, W / 2, H / 2, 300, bar === 4 ? '#ff4a7a' : '#fff', bl);
-      if (bl < 0.08) { ctx.save(); ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
-    }
-    flash(ctx, 0.5 - cl / 0.08);
-    flash(ctx, (lt - (6 * BAR - 0.35)) / 0.35);
+  const RUSH_CUTS = [8, 1, 4, 9, 2, 7, 10, 6, 0, 11, 3, 5, 8, 9, 10, 11];
+  function sceneRush(ctx, t, lt) {
+    const cut = Math.min(15, Math.floor(lt / BEAT)), cl = lt - cut * BEAT;
+    drawClipFrame(ctx, RUSH_CUTS[cut], t, cl, { x: [960, 640, 1280, 960][cut % 4], rot: [0, -0.05, 0.05, 0.02][cut % 4], scale: 1.42 + (cut % 4 === 3 ? 0.3 : 0) });
+    const c = TR.clips[RUSH_CUTS[cut]], bn = c.g.boss && c.g.boss.phase && c.g.boss.phase.name;
+    if (bn) slam(ctx, bn, cut % 2 ? 1450 : 470, 150, 58, '#fff', cl - 0.03, { shadow: FW.CHARS[c.g.boss.charId].color });
+    speedLines(ctx, W / 2, H / 2, t, '#ffffff', 50, 0.1 + lt * 0.03, 520);
+    flash(ctx, 0.45 - cl / 0.06);
+    flash(ctx, (lt - (4 * BAR - 0.3)) / 0.3, '#000');
   }
+
+  // ============================================================
+  //  7. 對波！
+  // ============================================================
+  const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const HERO_JOIN = ['chiyo', 'akane', 'shio', 'natsume', 'suzu'];
+  const JOIN_LINE = { chiyo: '……一起！', akane: '算力全部借妳！', shio: '游標，交給妳！', natsume: '旁白：她不是一個人。', suzu: '推回去——！' };
+  function beam(ctx, x0, x1, y, w, cols, t, dir) {
+    const len = Math.abs(x1 - x0); if (len < 2) return;
+    const N = 48, top = [], bot = [];
+    for (let i = 0; i <= N; i++) { const x = x0 + (x1 - x0) * i / N, hw = w / 2 * (1 + 0.14 * Math.sin(x * 0.025 - t * 45 * dir) + 0.06 * Math.sin(x * 0.11 + t * 70)); top.push([x, y - hw]); bot.push([x, y + hw]); }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    // 外暈
+    const gw = w * 2.2, gg = ctx.createLinearGradient(0, y - gw, 0, y + gw); gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(0.5, U.rgba(cols[0], 0.35)); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg; ctx.fillRect(Math.min(x0, x1), y - gw, len, gw * 2);
+    // 本體（彩色條紋＋白芯）
+    const g = ctx.createLinearGradient(0, y - w / 2, 0, y + w / 2);
+    g.addColorStop(0, U.rgba(cols[0], 0));
+    cols.forEach((c, i) => { const p = 0.08 + 0.3 * i / Math.max(1, cols.length - 1); g.addColorStop(p, U.rgba(c, 0.9)); g.addColorStop(1 - p, U.rgba(c, 0.9)); });
+    g.addColorStop(0.42, '#ffffff'); g.addColorStop(0.58, '#ffffff'); g.addColorStop(1, U.rgba(cols[0], 0));
+    ctx.fillStyle = g; ctx.beginPath(); top.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); for (let i = N; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]); ctx.fill();
+    // 流動的光條
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < 18; i++) { const off = ((t * 3200 + i * 211) % len), x = dir > 0 ? x0 + off : x0 - off, yy = y + (hash(i) - 0.5) * w * 0.7; ctx.fillRect(Math.min(x, x + dir * 160), yy - 2, 160, 4); }
+    ctx.restore();
+  }
+  function clash(ctx, x, y, t, k, cols) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const R = 300 * k;
+    const hg = ctx.createRadialGradient(x, y, 10, x, y, R * 1.6); hg.addColorStop(0, 'rgba(255,255,255,0.95)'); hg.addColorStop(0.25, U.rgba(cols[0], 0.6)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(x, y, R * 1.6, 0, TAU); ctx.fill();
+    const fr = Math.floor(t * 30);
+    for (let i = 0; i < 28; i++) { const a = hash(i + fr * 31) * TAU, l = (120 + hash(i * 7 + fr) * 420) * k, w = 0.03 + hash(i * 3) * 0.05; ctx.fillStyle = i % 3 ? 'rgba(255,255,255,0.8)' : U.rgba(cols[i % cols.length], 0.8); ctx.beginPath(); ctx.moveTo(x + Math.cos(a - w) * 30, y + Math.sin(a - w) * 30); ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); ctx.lineTo(x + Math.cos(a + w) * 30, y + Math.sin(a + w) * 30); ctx.fill(); }
+    for (let i = 0; i < 120; i++) { const ph = (t * 1.7 + hash(i)) % 1, a = (hash(i * 5) - 0.5) * 2.6 + (i % 2 ? 0 : Math.PI), sp = 300 + hash(i * 9) * 900; const px = x + Math.cos(a) * sp * ph, py = y + Math.sin(a) * sp * ph + 400 * ph * ph; ctx.fillStyle = `rgba(255,${200 + (i % 55)},${150 + (i % 100)},${1 - ph})`; ctx.fillRect(px, py, 6 * (1 - ph) + 2, 6 * (1 - ph) + 2); }
+    for (let r = 0; r < 2; r++) { const ph = ((t + r * BEAT / 2) % BEAT) / BEAT; ctx.strokeStyle = `rgba(255,255,255,${0.6 * (1 - ph)})`; ctx.lineWidth = 10 * (1 - ph); ctx.beginPath(); ctx.ellipse(x, y, ph * 700 * k, ph * 460 * k, 0, 0, TAU); ctx.stroke(); }
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, (60 + Math.sin(t * 60) * 10) * k, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  function charge(ctx, x, y, col, k, t) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 70; i++) { const ph = (t * 1.4 + hash(i)) % 1, a = hash(i * 3) * TAU, r = 700 * (1 - ph); ctx.strokeStyle = U.rgba(i % 4 ? col : '#ffffff', 0.8 * ph); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); ctx.lineTo(x + Math.cos(a) * (r + 80), y + Math.sin(a) * (r + 80)); ctx.stroke(); }
+    const R = 20 + k * 90, g = ctx.createRadialGradient(x, y, 0, x, y, R * 2.4); g.addColorStop(0, '#fff'); g.addColorStop(0.35, U.rgba(col, 0.9)); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R * 2.4, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  function arena(ctx, t, tint) {
+    const g = ctx.createRadialGradient(W / 2, H * 0.55, 50, W / 2, H / 2, 1300); g.addColorStop(0, U.shade(tint, -0.55)); g.addColorStop(1, '#030106');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = '#fff';
+    for (let i = 0; i < 40; i++) { const y = hash(i) * H, l = 200 + hash(i * 2) * 600, x = ((hash(i * 3) * W - t * 3000 * (i % 2 ? 1 : -1)) % (W + l) + W + l) % (W + l) - l; ctx.fillRect(x, y, l, 2 + (i % 3)); }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2;
+    for (let i = -12; i <= 12; i++) { ctx.beginPath(); ctx.moveTo(W / 2 + i * 30, 760); ctx.lineTo(W / 2 + i * 260, H); ctx.stroke(); }
+  }
+  function eyeStrip(ctx, id, side, t, col) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, H / 2 - 170, W, 340); ctx.clip();
+    const s = 13; portrait(ctx, id, W / 2 - side * 23 * s, H / 2 - 14 * s + 10, s, { tt: 0, expr: 'serious', blink: false });
+    speedLines(ctx, W / 2, H / 2, t, col, 50, 0.25, 520);
+    ctx.restore();
+    ctx.fillStyle = col; ctx.fillRect(0, H / 2 - 176, W, 6); ctx.fillRect(0, H / 2 + 170, W, 6);
+  }
+  let crackSnap = null;
+  function cracks(ctx, k) {
+    ctx.save(); ctx.strokeStyle = 'rgba(40,40,60,0.85)'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    for (let i = 0; i < 22; i++) { let x = W / 2, y = H / 2; const a0 = i * TAU / 22 + hash(i) * 0.3; ctx.beginPath(); ctx.moveTo(x, y); const L = 1300 * k; for (let s = 1; s <= 8; s++) { const a = a0 + (hash(i * 13 + s) - 0.5) * 0.6; x += Math.cos(a) * L / 8; y += Math.sin(a) * L / 8; ctx.lineTo(x, y); } ctx.stroke(); }
+    for (let r = 1; r <= 4; r++) { if (k * 4 < r) break; ctx.beginPath(); for (let i = 0; i <= 22; i++) { const a = i * TAU / 22, rr = r * 160 * (0.85 + hash(i + r * 50) * 0.3); i ? ctx.lineTo(W / 2 + Math.cos(a) * rr, H / 2 + Math.sin(a) * rr) : ctx.moveTo(W / 2 + Math.cos(a) * rr, H / 2 + Math.sin(a) * rr); } ctx.stroke(); }
+    ctx.restore();
+  }
+  function sceneClash(ctx, t, lt) {
+    const bar = Math.floor(lt / BAR), bl = lt - bar * BAR, beat = Math.floor(lt / BEAT), bt = lt - beat * BEAT, bib = beat % 4;
+    const RED = '#ff2a4a', BLUE = '#5a9cff';
+    if (bar === 0) { // 幕 蓄力
+      arena(ctx, t, RED);
+      FW.Sprites.magicCircle(ctx, 1150, 470, 430, t * 60, '#ff5a6a', 0.55);
+      portrait(ctx, 'maku', 1150, 470 - bl * 20, 2.3, { tt: t * 60, expr: 'serious' });
+      charge(ctx, 1150, 820, RED, bl / BAR, t);
+      slam(ctx, '幕引「請不要關掉遊戲」', 520, 200, 70, '#fff', bl - BEAT, { shadow: RED });
+      subtitle(ctx, 'maku', '……這是，最後的謝幕。', bl - 0.15, { life: 1.2 });
+      flash(ctx, 0.8 - bl / 0.1, RED);
+    } else if (bar === 1) { // 玲音 蓄力＋眼睛特寫
+      if (bib < 2) {
+        arena(ctx, t, BLUE);
+        FW.Sprites.magicCircle(ctx, 770, 470, 430, -t * 60, '#9ac0ff', 0.55);
+        portrait(ctx, 'rinne', 770, 470 - bl * 20, 2.3, { tt: t * 60, expr: 'serious' });
+        charge(ctx, 770, 820, BLUE, 0.5 + bl / BAR, t);
+        subtitle(ctx, 'rinne', '不。故事——還沒有結束！', bl - 0.05, { life: 0.66, cps: 40 });
+      } else eyeStrip(ctx, bib === 2 ? 'maku' : 'rinne', bib === 2 ? 1 : -1, t, bib === 2 ? RED : BLUE);
+      flash(ctx, 0.6 - bt / 0.06);
+    } else if (bar === 7 && bib >= 2) { // 螢幕裂開
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+      cracks(ctx, Math.min(1, (lt - (7 * BAR + 2 * BEAT)) / (BEAT * 1.4)));
+      if (bib === 3) { ctx.save(); ctx.font = `700 34px ${FONT}`; ctx.fillStyle = '#556'; ctx.textAlign = 'center'; ctx.fillText('……咦？', W / 2, H - 120); ctx.restore(); }
+    } else if (bar === 2 && bib === 0) { // 一拍的寂靜
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+      charge(ctx, 450, 690, BLUE, 0.4, t); charge(ctx, 1470, 690, RED, 0.4, t);
+    } else if (bar === 3 && bib < 2) { // 分割特寫：僵持
+      ctx.save(); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(1100, 0); ctx.lineTo(820, H); ctx.lineTo(0, H); ctx.clip();
+      arena(ctx, t, BLUE); portrait(ctx, 'rinne', 520, 520, 3.2, { tt: t * 60, expr: 'strain' }); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.moveTo(1100, 0); ctx.lineTo(W, 0); ctx.lineTo(W, H); ctx.lineTo(820, H); ctx.clip();
+      arena(ctx, t, RED); portrait(ctx, 'maku', 1420, 520, 3.2, { tt: t * 60, expr: 'serious' }); ctx.restore();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 18 + Math.sin(t * 80) * 6; ctx.shadowColor = '#fff'; ctx.shadowBlur = 40; ctx.beginPath(); ctx.moveTo(1100, 0); ctx.lineTo(820, H); ctx.stroke(); ctx.restore();
+      clash(ctx, 960, 540, t, 0.55, [RED, BLUE]);
+      subtitle(ctx, 'rinne', '……好、重……！', lt - 3 * BAR, { life: 0.66, cps: 30 });
+    } else { // 遠景：對波
+      let joined = 0;
+      if (bar >= 4) joined = Math.min(5, beat - 16 + 1);
+      let cx;
+      if (bar === 2) cx = 960;
+      else if (bar === 3) cx = U.lerp(960, 640, U.easeInOut((lt - 3 * BAR - 2 * BEAT) / (2 * BEAT)));
+      else if (bar === 4 || bar === 5) cx = 640 + joined * 64 - (bar === 4 ? Math.sin(t * 20) * 8 : 0);
+      else if (bar === 6) cx = U.lerp(950, 1420, U.easeIn(bl / BAR));
+      else cx = 1500;
+      arena(ctx, t, bar >= 6 ? '#ffd36b' : '#7a3aff');
+      const cols = [BLUE, ...HERO_JOIN.slice(0, joined).map(id => FW.CHARS[id].color)];
+      // 角色
+      const JP = [[120, 270], [320, 215], [520, 270], [230, 395], [430, 395]];
+      for (let j = 0; j < joined; j++) {
+        const id = HERO_JOIN[j], age = lt - (4 * BAR + j * BEAT), k = U.easeBack(clamp(age / 0.2, 0, 1));
+        ctx.save(); ctx.globalAlpha = clamp(age / 0.1, 0, 1);
+        const ag = ctx.createRadialGradient(JP[j][0], JP[j][1], 10, JP[j][0], JP[j][1], 200); ag.addColorStop(0, U.rgba(FW.CHARS[id].color, 0.6)); ag.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = ag; ctx.fillRect(JP[j][0] - 200, JP[j][1] - 200, 400, 400);
+        portrait(ctx, id, JP[j][0] - (1 - k) * 400, JP[j][1], 1.05, { tt: t * 60 + j * 30, expr: age < 0.5 ? 'yell' : 'strain' }); ctx.restore();
+      }
+      const fog = ctx.createLinearGradient(0, 560, 0, H); fog.addColorStop(0, 'rgba(6,3,14,0)'); fog.addColorStop(1, 'rgba(6,3,14,0.92)'); ctx.fillStyle = fog; ctx.fillRect(0, 560, W, H - 560);
+      portrait(ctx, 'rinne', 230, 560, 1.95, { tt: t * 60, expr: bar === 5 || bar >= 6 ? 'yell' : 'strain' });
+      if (bar < 7) portrait(ctx, 'maku', 1690, 560, 1.95, { tt: t * 60, expr: bar >= 6 ? 'surprised' : 'strain', flip: true });
+      const BY = 690, bw = bar >= 6 ? 170 + bl * 130 : 110 + joined * 14;
+      beam(ctx, 450, cx, BY, bw, cols, t, 1);
+      if (bar < 7) beam(ctx, 1470, cx, BY, 120, [RED, '#ff8aa0'], t, -1);
+      charge(ctx, 450, BY, BLUE, 0.7, t); if (bar < 7) charge(ctx, 1470, BY, RED, 0.7, t);
+      clash(ctx, cx, BY, t, bar >= 6 ? 1.2 : 0.85, cols);
+      if (bar === 2) { flash(ctx, 1 - (lt - 2 * BAR - BEAT) / 0.12); }
+      // 加入時的台詞與閃光
+      if (bar === 4 || (bar === 5 && bib === 0)) { const id = HERO_JOIN[Math.min(4, joined - 1)]; flash(ctx, 0.5 - bt / 0.08, FW.CHARS[id].color); subtitle(ctx, id, JOIN_LINE[id], bt, { life: BEAT * 0.95, cps: 60 }); }
+      if (bar === 5 && bib >= 1) { subtitle(ctx, 'rinne', '大家……！！', lt - 5 * BAR - BEAT, { life: 3 * BEAT, cps: 30 }); }
+      if (bar === 6) { const w = ['打破', '第四', '面牆', '————！！'][bib]; slam(ctx, w, W / 2, 300, bib === 3 ? 170 : 240, bib === 1 ? '#ff4a7a' : '#fff', bt); flash(ctx, 0.5 - bt / 0.06); }
+      if (bar === 7) flash(ctx, lt - 7 * BAR > 0 ? 0.6 + (lt - 7 * BAR) / (2 * BEAT) : 0);
+    }
+    if (bar >= 2 && !(bar === 2 && bib === 0) && !(bar === 7 && bib >= 2)) speedLines(ctx, W / 2, H / 2, t, '#ffffff', 40, 0.08, 600);
+  }
+  // 片尾碎片用的快照
+  function crackSnapshot() {
+    if (crackSnap) return crackSnap;
+    crackSnap = document.createElement('canvas'); crackSnap.width = W; crackSnap.height = H;
+    const x = crackSnap.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); cracks(x, 1);
+    return crackSnap;
+  }
+  const logoShards = makeShards(W / 2, H / 2, 9);
 
   // ============================================================
   //  7. 標題
@@ -480,7 +622,8 @@
     if (lt > 0.4) { ctx.save(); ctx.globalAlpha = clamp((lt - 0.4) / 0.3, 0, 1); ctx.font = `italic 700 54px ${SERIF}`; ctx.textAlign = 'center'; ctx.fillStyle = '#ffc8d8'; ctx.fillText('FourthWall ～ Behind the Bullet Curtain', W / 2, 430); ctx.restore(); }
     if (lt > 1.9) { ctx.save(); ctx.globalAlpha = clamp((lt - 1.9) / 0.3, 0, 1); ctx.textAlign = 'center'; ctx.font = `700 44px ${FONT}`; ctx.fillStyle = '#fff'; ctx.fillText('6 位原創女主角｜40 張以上符卡｜8 種結局｜∞ 無盡幕間', W / 2, 900); ctx.restore(); }
     if (lt > 2.6) { ctx.save(); ctx.globalAlpha = clamp((lt - 2.6) / 0.3, 0, 1); ctx.textAlign = 'center'; ctx.font = `900 60px ${FONT}`; ctx.fillStyle = '#ffe14a'; ctx.fillText('免費・瀏覽器／手機・現在就能玩', W / 2, 990); ctx.font = `700 38px ${FONT}`; ctx.fillStyle = '#cfe0ff'; ctx.fillText(TR.live ? `現在是 ${FW.Real.hhmm()}——正是開始的好時機。` : 'howeraprojects.github.io/FourthWall', W / 2, 1050); ctx.restore(); }
-    flash(ctx, 1 - lt / 0.25);
+    if (lt < 1.4) drawShards(ctx, crackSnapshot(), logoShards, lt);
+    if (lt > 0.4 && lt < 2.6) { ctx.save(); ctx.globalAlpha = Math.min(1, (lt - 0.4) / 0.3, (2.6 - lt) / 0.3); ctx.font = `500 26px ${FONT}`; ctx.fillStyle = '#c8b8d8'; ctx.textAlign = 'right'; ctx.fillText('（你的螢幕沒事，放心）', W - 40, 50); ctx.restore(); }
     flash(ctx, (lt - (4 * BAR - 0.5)) / 0.5, '#000');
   }
 
@@ -522,9 +665,17 @@
   // ============================================================
   //  主繪製
   // ============================================================
+  let shakeList = null;
+  function shakeAmp(t) {
+    if (!shakeList) shakeList = TR.cues().filter(c => c.sfx === 'impact' || c.sfx === 'hit2' || c.sfx === 'knock').map(c => [c.t, c.sfx === 'impact' ? 30 : c.sfx === 'knock' ? 12 : 9]);
+    let a = 0; for (const [ti, w] of shakeList) { const d = t - ti; if (d >= 0 && d < 0.4) a += w * (1 - d / 0.4) ** 2; }
+    if (t > T.RUSH_END + 2 * BAR + BEAT && t < T.CLASH_END - 2 * BEAT) a += 7;   // 對波中的持續震動
+    return Math.min(40, a);
+  }
   TR.draw = function (ctx, t) {
     ctx.save();
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const sa = shakeAmp(t); if (sa > 0.5) { const f = Math.floor(t * 60); ctx.translate((hash(f) - 0.5) * 2 * sa, (hash(f + 999) - 0.5) * 2 * sa); ctx.scale(1.03, 1.03); ctx.translate(-W * 0.015, -H * 0.015); }
     if (t < T.INTRO) sceneAd(ctx, t);
     else if (t < T.DROP) sceneIntro(ctx, t, t - T.INTRO);
     else if (t < T.MONT_END) sceneMontage(ctx, t, t - T.DROP);
@@ -532,7 +683,8 @@
     else if (t < T.GAG_END) sceneGag(ctx, t, t - T.CARDS_END);
     else if (t < T.GAG_END + 2 * BAR) sceneNanashi(ctx, t, t - T.GAG_END);
     else if (t < T.VIL_END) sceneMaku(ctx, t, t - T.GAG_END - 2 * BAR);
-    else if (t < T.CLIMAX_END) sceneClimax(ctx, t, t - T.VIL_END);
+    else if (t < T.RUSH_END) sceneRush(ctx, t, t - T.VIL_END);
+    else if (t < T.CLASH_END) sceneClash(ctx, t, t - T.RUSH_END);
     else if (t < T.LOGO_END) sceneLogo(ctx, t, t - T.CLIMAX_END);
     else scenePost(ctx, t, t - T.LOGO_END);
     ctx.restore();
@@ -566,10 +718,23 @@
     c.push({ t: T.GAG_END, music: 'b_true', step: 128, until: T.LOGO_END + 0.6 });
     sfx(T.GAG_END + 2 * BAR, 'boom'); sfx(T.GAG_END + 2 * BAR, 'spell');
     sfx(T.VIL_END, 'spell'); sfx(T.VIL_END, 'impact');
-    for (let i = 0; i < 12; i++) sfx(T.VIL_END + i * 2 * BEAT, 'hit2');
-    for (let b = 3; b < 6; b++) sfx(T.VIL_END + b * BAR, 'impact');
-    sfx(T.CLIMAX_END - 0.35, 'riser');
-    sfx(T.CLIMAX_END, 'impact'); sfx(T.CLIMAX_END + 0.3, 'capture');
+    for (let i = 0; i < 16; i++) sfx(T.VIL_END + i * BEAT, 'hit2');
+    for (let b = 0; b < 4; b++) sfx(T.VIL_END + b * BAR, 'spell');
+    // 對波
+    const C = T.RUSH_END;
+    c.push({ t: C, gain: 0.5, ramp: 0.3 });
+    sfx(C, 'impact'); sfx(C, 'charge'); sfx(C + 0.8, 'charge'); sfx(C + BAR, 'charge'); sfx(C + BAR + 0.8, 'charge');
+    sfx(C + BEAT, 'hit2'); sfx(C + BAR, 'impact'); sfx(C + BAR + 2 * BEAT, 'hit2'); sfx(C + BAR + 3 * BEAT, 'hit2'); sfx(C + BAR, 'riser');
+    c.push({ t: C + 2 * BAR - 0.02, gain: 0, ramp: 0.02 });
+    c.push({ t: C + 2 * BAR + BEAT, gain: 1, ramp: 0.01 });
+    sfx(C + 2 * BAR + BEAT, 'impact'); sfx(C + 2 * BAR + BEAT, 'laser'); sfx(C + 2 * BAR + BEAT, 'boom'); sfx(C + 2 * BAR + BEAT, 'glass');
+    for (let i = 2 * 4 + 2; i < 7 * 4; i++) sfx(C + i * BEAT, 'hit2');
+    for (let b = 3; b < 7; b++) sfx(C + b * BAR, 'laser');
+    for (let j = 0; j < 5; j++) { sfx(C + 4 * BAR + j * BEAT, 'powerup'); sfx(C + 4 * BAR + j * BEAT, 'impact'); }
+    for (let j = 0; j < 4; j++) sfx(C + 6 * BAR + j * BEAT, 'impact');
+    sfx(C + 7 * BAR, 'bigkill'); sfx(C + 7 * BAR, 'impact');
+    [0, 0.25, 0.5, 0.75].forEach(d => sfx(C + 7 * BAR + 2 * BEAT + d * BEAT * 1.4, 'crack'));
+    sfx(T.CLASH_END, 'glass'); sfx(T.CLASH_END, 'impact'); sfx(T.CLASH_END + 0.4, 'capture');
     c.push({ t: T.LOGO_END - 1.2, gain: 0, ramp: 1.6 });
     [4.9, 5.15, 5.4].forEach(d => sfx(T.LOGO_END + d, 'knock'));
     c.push({ t: T.LOGO_END + 7.5, gain: 0 }); c.push({ t: T.LOGO_END + 7.55, music: 'title', until: T.END }); c.push({ t: T.LOGO_END + 7.6, gain: 0.8, ramp: 0.8 }); c.push({ t: T.END - 1.6, gain: 0, ramp: 1.5 });

@@ -12,6 +12,9 @@ os.makedirs(os.path.join(OUT, 'frames'), exist_ok=True)
 
 class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store')
+        super().end_headers()
     def do_POST(self):
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
         data = self.rfile.read(int(self.headers.get('Content-Length', 0)))
