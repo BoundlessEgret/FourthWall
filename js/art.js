@@ -388,7 +388,7 @@
         ctx.beginPath(); ctx.moveTo(82, 118); ctx.bezierCurveTo(100, 100, 110, 140, 92, 160); ctx.closePath(); fillStroke(ctx, U.shade(main, 0.1), line);
         break;
       }
-      case 'hanfu': { // 蒼：交領長袍
+      case 'hanfu': { // 無涯：交領長袍
         // 內襯（交領）
         ctx.beginPath(); ctx.moveTo(-20, 84); ctx.lineTo(24, 168); ctx.lineTo(34, 160); ctx.lineTo(-2, 84); ctx.closePath(); ctx.fillStyle = '#ffffff'; ctx.fill();
         ctx.lineCap = 'round';
@@ -683,15 +683,15 @@
 
   // 預渲染 Q 版動畫幀
   Art.cacheChibi = function (spec, scale, opts = {}) {
-    const S = 2, W = Math.ceil(260 * scale * S), H = Math.ceil(340 * scale * S);
+    const S = 2, W = Math.ceil(260 * scale * S), H = Math.ceil(366 * scale * S), TOP = 136; // TOP：頭頂的留白（光環）
     const frames = {};
     for (const lean of [-1, 0, 1]) for (let ph = 0; ph < 6; ph++) for (const bl of [0, 1]) {
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       const x = c.getContext('2d'); x.scale(S, S);
-      Art.chibi(x, spec, W / S / 2, 110 * scale, scale, { t: ph * 21, lean, blink: !!bl, wings: opts.wings, expr: opts.expr });
+      Art.chibi(x, spec, W / S / 2, TOP * scale, scale, { t: ph * 21, lean, blink: !!bl, wings: opts.wings, expr: opts.expr });
       frames[lean + ',' + ph + ',' + bl] = c;
     }
-    return { frames, W: W / S, H: H / S, oy: 110 * scale, scale };
+    return { frames, W: W / S, H: H / S, oy: TOP * scale, scale };
   };
   Art.drawCached = function (ctx, cache, x, y, t, lean, extraScale = 1) {
     const ph = Math.floor(t / 7) % 6, bl = (t % 200) < 7 ? 1 : 0;

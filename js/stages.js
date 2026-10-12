@@ -168,7 +168,7 @@
     yield* bossBattle(g, bossId, FW.BOSSES.heroine(bossId, lv), { pre: FW.STORY.pre(g.charId, bossId, s), post: FW.STORY.post(g.charId, bossId, s) });
   }
 
-  // 蒼（隱藏角色）的路線：最後一關是「主角之爭」
+  // 無涯（隱藏角色）的路線：最後一關是「主角之爭」
   const SOU_ROUTE = ['suzu', 'chiyo', 'shio', 'natsume', 'rinne'], SOU_MID = ['suzu', 'chiyo', 'akane', 'natsume', 'rinne'];
   const order = id => id === 'sou' ? SOU_ROUTE : FW.PLAYABLE.filter(c => c !== id);
   FW.STAGES = {};

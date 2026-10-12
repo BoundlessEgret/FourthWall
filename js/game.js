@@ -52,6 +52,11 @@
       if (canMove && FW.touchMode) { const tm = Input.touchMove, cap = 14; tx = U.clamp(tm.x, -cap, cap); ty = U.clamp(tm.y, -cap, cap); if (Math.abs(tx) > 0.5) dx = U.sign(tx); }
       this.x = U.clamp(this.x + dx * sp * n * (tx ? 0 : 1) + tx, 10 + g.wallL, W - 10 - g.wallR); this.y = U.clamp(this.y + dy * sp * n * (ty ? 0 : 1) + ty, 18, H - 18);
       this.lean = U.lerp(this.lean, dx, 0.2); this.lastDX = dx;
+      // 無涯：移動時御劍飛行，停下來才落地
+      const mv = Math.hypot(this.x - (this.ox ?? this.x), this.y - (this.oy ?? this.y)) > 0.3;
+      this.ox = this.x; this.oy = this.y;
+      this.ride = U.lerp(this.ride || 0, mv ? 1 : 0, mv ? 0.3 : 0.1);
+      if (mv) { this.rideVX = U.lerp(this.rideVX || 0, dx, 0.25); }
       this.hist.push(dx, dy); if (this.hist.length > 120) this.hist.splice(0, 2);
       // 選項位置
       const L = this.L, F = this.focus;
@@ -99,17 +104,29 @@
         const n = 1 + L, s = Spr.pshot('page', '#9a3ad0');
         for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2); P(this.x + off * (F ? 8 : 20), this.y - 8, off * (F ? 0.2 : 1.2), F ? -12 : -9, 6.2, s, { pierce: new Set(), r: 12 }); }
         A().sfx('shoot');
-      } else if (id === 'sou') {
-        // 御劍術：飛劍＋劍氣
-        if (t % 7 === 0) {
-          const s = Spr.pshot('sword', '#5ae0d4');
-          for (let i = 0; i < L; i++) { const o = this.opts[i], off = i - (L - 1) / 2, ang = -Math.PI / 2 + (F ? 0 : off * 0.16); P(o.x, o.y - 8, Math.cos(ang) * 17, Math.sin(ang) * 17, 3.0, s, { rot: ang + Math.PI / 2 }); }
-        }
-        if (F && t % 12 === 0) { P(this.x, this.y - 20, 0, -13, 4.5, Spr.pshot('qi', '#5ae0d4'), { r: 14, pierce: new Set() }); A().sfx('shoot'); }
+      } else if (id === 'sou' && t % 8 === 0) {
+        // 御劍術：和玲音同款的追蹤彈（情侶款），只是星星換成了飛劍
+        const s = Spr.pshot('sword', '#5ae0d4');
+        for (let i = 0; i < L; i++) { const o = this.opts[i], vx = (i - (L - 1) / 2) * (F ? 0.5 : 2); P(o.x, o.y, vx, -10, 3.2, s, { homing: true, orient: true, rot: Math.atan2(-10, vx) + Math.PI / 2 }); }
       } else if (id === 'suzu' && t % 6 === 0) {
         const n = L + 2, s = Spr.bullet('note', 'orange');
         for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * (F ? 0.3 : 1.4); P(this.x, this.y - 8, Math.cos(a) * 12, Math.sin(a) * 12, 2.4, s, { bounce: 2, scale: 0.8 }); }
       }
+    }
+    drawRideSword(ctx, k) { // 腳下的飛劍
+      const x = this.x, y = this.y + 30 - k * 6 + Math.sin(this.t * 0.2) * k, tilt = (this.rideVX || 0) * 0.12;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(tilt); ctx.globalAlpha = Math.min(1, k * 1.4);
+      // 劍光拖尾
+      const dir = -(this.rideVX || 0), g = ctx.createLinearGradient(0, 0, dir * 46 || 0.01, 14);
+      g.addColorStop(0, 'rgba(90,224,212,0.55)'); g.addColorStop(1, 'rgba(90,224,212,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-22, -2); ctx.lineTo(22, -2); ctx.lineTo(22 + dir * 30, 10); ctx.lineTo(-22 + dir * 30, 10); ctx.fill();
+      // 劍身（劍尖朝前進方向）
+      ctx.scale(this.rideVX < -0.1 ? -1 : 1, 1);
+      ctx.shadowColor = '#5ae0d4'; ctx.shadowBlur = 8;
+      ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(18, -3); ctx.lineTo(-12, -3); ctx.lineTo(-12, 3); ctx.lineTo(18, 3); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#e8c860'; ctx.fillRect(-15, -6, 3, 12); ctx.fillStyle = '#1e2636'; ctx.fillRect(-25, -2, 10, 4);
+      ctx.fillStyle = '#5ae0d4'; ctx.beginPath(); ctx.arc(-26, 0, 2, 0, TAU); ctx.fill();
+      ctx.restore();
     }
     beamTargets() { // 茜的雷射
       const L = this.L, F = this.focus, arr = [{ x: this.x, w: F ? 9 : 6, dmg: F ? 1.3 : 0.9 }];
@@ -136,7 +153,9 @@
       }
       const blink = this.invuln > 0 && Math.floor(this.t / 3) % 2 === 0;
       if (blink) ctx.globalAlpha = 0.45;
-      Art.drawCached(ctx, this.cache, this.x, this.y - 2, this.t, this.lean);
+      const ride = this.ch.id === 'sou' ? (this.ride || 0) : 0;
+      if (ride > 0.02) this.drawRideSword(ctx, ride);
+      Art.drawCached(ctx, this.cache, this.x, this.y - 2 - ride * 6, this.t, this.lean);
       ctx.globalAlpha = 1;
       if (this.focusAnim > 0.02) {
         const a = this.focusAnim;
@@ -406,6 +425,7 @@
         if (s.homing) {
           const e = this.nearestEnemy(s.x, s.y);
           if (e) { const a = U.ang(s.x, s.y, e.x, e.y), sp = 11; const ca = Math.atan2(s.vy, s.vx); const na = ca + U.clamp(U.angDiff(ca, a), -0.18, 0.18); s.vx = Math.cos(na) * sp; s.vy = Math.sin(na) * sp; }
+          if (s.orient) s.rot = Math.atan2(s.vy, s.vx) + Math.PI / 2;
         }
         s.x += s.vx; s.y += s.vy;
         if (s.bounce > 0 && (s.x < this.wallL || s.x > W - this.wallR)) { s.vx = -s.vx; s.bounce--; s.x = U.clamp(s.x, this.wallL, W - this.wallR); }
