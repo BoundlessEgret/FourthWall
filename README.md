@@ -4,8 +4,8 @@
 
 ## 預告片
 
-- 網頁版（會讀你的存檔、知道現在幾點）：[trailer.html](https://howeraprojects.github.io/FourthWall/trailer.html)
-- 影片版：[trailer.mp4](https://howeraprojects.github.io/FourthWall/trailer.mp4)（1080p／84 秒）
+- 網頁版（會讀你的存檔、知道現在幾點）：[trailer.html](https://boundlessegret.github.io/FourthWall/trailer.html)
+- 影片版：[trailer.mp4](https://boundlessegret.github.io/FourthWall/trailer.mp4)（1080p／84 秒）
 - 重新輸出影片：`python3 tools/trailer_server.py out 8766`，開 `http://localhost:8766/trailer.html?render&fps=30`，完成後 `sh tools/make_trailer.sh out trailer.mp4`
 
 ## 怎麼玩
